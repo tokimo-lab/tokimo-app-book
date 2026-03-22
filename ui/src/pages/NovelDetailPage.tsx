@@ -214,7 +214,7 @@ export default function NovelDetailPage() {
       <div className="px-6 py-6">
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(`/dashboard/library/${id}/novel`)}
+          onClick={() => navigate(`/dashboard/library/${id}`)}
         >
           返回
         </Button>
@@ -231,7 +231,7 @@ export default function NovelDetailPage() {
       <div className="mb-6">
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(`/dashboard/library/${id}/novel`)}
+          onClick={() => navigate(`/dashboard/library/${id}`)}
         >
           返回
         </Button>
