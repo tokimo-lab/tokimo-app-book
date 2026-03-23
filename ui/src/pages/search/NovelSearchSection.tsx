@@ -7,7 +7,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../../generated/rust-api";
 import type { NovelSearchResultOutput } from "../../../generated/rust-types";
@@ -81,6 +81,62 @@ interface DownloadProgress {
   novelId?: string;
 }
 
+// ── Result ranking helpers ────────────────────────────────────────────────────
+
+function normalizeTitle(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function scoreResult(item: NovelSearchResultOutput, keyword: string): number {
+  const nt = normalizeTitle(item.title);
+  const nk = normalizeTitle(keyword);
+  if (nt === nk) return 100;
+  if (nt.startsWith(nk)) return 80;
+  if (nk.startsWith(nt)) return 70;
+  if (nt.includes(nk)) return 60;
+  if (nk.includes(nt)) return 50;
+  return 10;
+}
+
+function parseWordCount(wc: string): number {
+  if (!wc) return 0;
+  const m = wc.match(/([\d.]+)\s*万/);
+  if (m) return Number.parseFloat(m[1]) * 10000;
+  const n = Number.parseInt(wc.replace(/\D/g, ""), 10);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+interface RankedBook {
+  best: NovelSearchResultOutput;
+  sources: NovelSearchResultOutput[];
+  score: number;
+}
+
+function rankAndDedup(
+  results: NovelSearchResultOutput[],
+  keyword: string,
+): RankedBook[] {
+  const groups = new Map<string, NovelSearchResultOutput[]>();
+  for (const item of results) {
+    const key = `${normalizeTitle(item.title)}||${normalizeTitle(item.author || "")}`;
+    const arr = groups.get(key);
+    if (arr) arr.push(item);
+    else groups.set(key, [item]);
+  }
+  const ranked: RankedBook[] = [];
+  for (const sources of groups.values()) {
+    const best = sources.reduce((a, b) =>
+      parseWordCount(b.wordCount) > parseWordCount(a.wordCount) ? b : a,
+    );
+    ranked.push({ best, sources, score: scoreResult(best, keyword) });
+  }
+  ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return parseWordCount(b.best.wordCount) - parseWordCount(a.best.wordCount);
+  });
+  return ranked;
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function NovelSearchSection() {
@@ -115,6 +171,18 @@ export default function NovelSearchSection() {
   });
 
   const bookInfoMutation = api.novel.getBookInfo.useMutation();
+
+  // ── Ranked & deduped results ─────────────────────────────────────────────
+
+  const rankedBooks = useMemo(
+    () => rankAndDedup(results, keyword),
+    [results, keyword],
+  );
+  const bestMatch =
+    rankedBooks.length > 0 && rankedBooks[0].score >= 80
+      ? rankedBooks[0]
+      : null;
+  const otherBooks = bestMatch ? rankedBooks.slice(1) : rankedBooks;
 
   // ── Search ───────────────────────────────────────────────────────────────
 
@@ -340,28 +408,82 @@ export default function NovelSearchSection() {
             {t("novel.search.searching", "正在搜索 {{count}} 个站点...", {
               count: providerCount,
             })}
-            {results.length > 0 &&
-              ` ${t("novel.search.found", "已找到 {{count}} 个结果", { count: results.length })}`}
+            {rankedBooks.length > 0 &&
+              ` ${t("novel.search.foundBooks", "已找到 {{count}} 本书", { count: rankedBooks.length })}`}
           </span>
         </div>
       )}
 
-      {/* Results */}
-      {results.length > 0 && (
+      {/* Best match */}
+      {bestMatch && (
+        <div className="mb-4 rounded-lg border-2 border-[var(--accent)]/30 bg-[var(--accent)]/[0.04] p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide">
+              {t("novel.search.bestMatch", "最佳匹配")}
+            </span>
+            {bestMatch.sources.length > 1 && (
+              <Tag className="!text-[10px]">
+                {t("novel.search.sourceCount", "{{count}} 个源", {
+                  count: bestMatch.sources.length,
+                })}
+              </Tag>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <BookOpen size={16} className="shrink-0 text-[var(--accent)]" />
+                <span className="font-semibold text-base text-[var(--text-primary)]">
+                  {bestMatch.best.title}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
+                <span className="flex items-center gap-1">
+                  <User size={11} />
+                  {bestMatch.best.author || "—"}
+                </span>
+                {bestMatch.best.wordCount && (
+                  <span>
+                    {t("novel.search.wordCount", "字数")}:{" "}
+                    {bestMatch.best.wordCount}
+                  </span>
+                )}
+                {bestMatch.best.latestChapter && (
+                  <span className="truncate max-w-[200px]">
+                    {t("novel.search.latest", "最新")}:{" "}
+                    {bestMatch.best.latestChapter}
+                  </span>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              icon={<Download size={16} />}
+              onClick={() => handleViewDetails(bestMatch.best)}
+            >
+              {t("novel.download.title", "下载")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Other results */}
+      {otherBooks.length > 0 && (
         <div className="mb-2 flex items-center gap-2">
           <span className="text-sm font-medium text-[var(--text-secondary)]">
-            {t("novel.search.results", "搜索结果")}
+            {bestMatch
+              ? t("novel.search.otherResults", "其他结果")
+              : t("novel.search.results", "搜索结果")}
           </span>
-          <Tag>{results.length}</Tag>
+          <Tag>{otherBooks.length}</Tag>
         </div>
       )}
 
-      {results.length > 0 ? (
+      {otherBooks.length > 0 ? (
         <div className="divide-y divide-[var(--glass-border)] rounded-lg border border-[var(--glass-border)] overflow-hidden">
-          {results.map((item, idx) => (
+          {otherBooks.map((book) => (
             <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: results may have duplicate site+bookId from parallel streams
-              key={`${item.site}-${item.bookId}-${idx}`}
+              key={`${book.best.site}-${book.best.bookId}`}
               className="flex items-center justify-between px-4 py-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] transition-colors"
             >
               <div className="flex-1 min-w-0">
@@ -371,23 +493,30 @@ export default function NovelSearchSection() {
                     className="shrink-0 text-[var(--accent)]"
                   />
                   <span className="font-medium text-sm text-[var(--text-primary)] truncate">
-                    {item.title}
+                    {book.best.title}
                   </span>
-                  <Tag className="!text-[10px]">{item.site}</Tag>
+                  <Tag className="!text-[10px]">{book.best.site}</Tag>
+                  {book.sources.length > 1 && (
+                    <Tag className="!text-[10px]">
+                      +{book.sources.length - 1}
+                    </Tag>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
                   <span className="flex items-center gap-1">
                     <User size={11} />
-                    {item.author || "—"}
+                    {book.best.author || "—"}
                   </span>
-                  {item.latestChapter && (
+                  {book.best.latestChapter && (
                     <span className="truncate max-w-[200px]">
-                      {t("novel.search.latest", "最新")}: {item.latestChapter}
+                      {t("novel.search.latest", "最新")}:{" "}
+                      {book.best.latestChapter}
                     </span>
                   )}
-                  {item.wordCount && (
+                  {book.best.wordCount && (
                     <span>
-                      {t("novel.search.wordCount", "字数")}: {item.wordCount}
+                      {t("novel.search.wordCount", "字数")}:{" "}
+                      {book.best.wordCount}
                     </span>
                   )}
                 </div>
@@ -396,7 +525,7 @@ export default function NovelSearchSection() {
                 size="small"
                 variant="text"
                 icon={<ChevronRight size={14} />}
-                onClick={() => handleViewDetails(item)}
+                onClick={() => handleViewDetails(book.best)}
               >
                 {t("novel.search.viewDetails", "查看详情")}
               </Button>
@@ -404,7 +533,8 @@ export default function NovelSearchSection() {
           ))}
         </div>
       ) : (
-        !searching && (
+        !searching &&
+        !bestMatch && (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={t("novel.search.emptyHint", "输入关键词搜索小说")}

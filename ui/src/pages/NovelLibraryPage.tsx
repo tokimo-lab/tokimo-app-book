@@ -1,8 +1,16 @@
-import { Button, Empty, Modal, Spin, SyncOutlined } from "@tokiomo/components";
+import {
+  Button,
+  Empty,
+  Modal,
+  PosterCard,
+  Spin,
+  SyncOutlined,
+} from "@tokiomo/components";
 import { BookOpen, Plus, Search } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import NovelDownloadModal from "../../components/dashboard/NovelDownloadModal";
+import NovelDownloadPopover from "../../components/dashboard/NovelDownloadPopover";
 import type { NovelOutput } from "../../generated/rust-api";
 import { api } from "../../generated/rust-api";
 import { useMessage } from "../../hooks";
@@ -11,7 +19,7 @@ import { LibrarySearchBox } from "./LibrarySearchBox";
 
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;
-const CARD_TITLE_HEIGHT = 68;
+const CARD_TITLE_HEIGHT = 52;
 
 const SORT_OPTIONS = [
   { label: "最近添加", value: "addedAt" },
@@ -51,7 +59,7 @@ function formatWordCount(count: number | null): string {
 }
 
 // ── Book Card ────────────────────────────────────────────────────────────────
-const BookCard = memo(function BookCard({
+function BookCard({
   item,
   onClick,
 }: {
@@ -59,65 +67,51 @@ const BookCard = memo(function BookCard({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 350px",
-      }}
-      className="group w-full cursor-pointer overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--card-bg)] text-left transition-shadow hover:shadow-lg"
+    <PosterCard
+      src={item.coverPath ? buildPosterUrl(item.coverPath) : undefined}
+      alt={item.title}
+      fallback={
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
+          <BookOpen size={36} strokeWidth={1.5} />
+          <span className="max-w-[80%] truncate px-2 text-center text-xs">
+            {item.title}
+          </span>
+        </div>
+      }
+      badges={
+        <>
+          {item.serialStatus && (
+            <span className="absolute top-2 right-0 inline-flex items-center rounded-l-md border border-r-0 border-white/12 bg-[var(--sidebar-bg)] px-2 py-0.5 text-[10px] font-medium backdrop-blur-md">
+              {item.serialStatus === "completed" ? (
+                <span className="text-emerald-500">完结</span>
+              ) : (
+                <span className="text-blue-500">连载</span>
+              )}
+            </span>
+          )}
+          {item.chapterCount != null && item.chapterCount > 0 && (
+            <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white backdrop-blur-sm">
+              {item.chapterCount}章
+            </span>
+          )}
+        </>
+      }
       onClick={onClick}
     >
-      <div className="relative aspect-[2/3] overflow-hidden bg-[var(--bg-skeleton)]">
-        {item.coverPath ? (
-          <img
-            src={buildPosterUrl(item.coverPath)}
-            alt={item.title}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
-            <BookOpen size={36} strokeWidth={1.5} />
-            <span className="max-w-[80%] truncate px-2 text-center text-xs">
-              {item.title}
-            </span>
-          </div>
-        )}
-        {/* Serial status badge */}
-        {item.serialStatus && (
-          <span className="absolute top-2 right-0 inline-flex items-center rounded-l-md border border-r-0 border-white/12 bg-[var(--sidebar-bg)] px-2 py-0.5 text-[10px] font-medium backdrop-blur-md">
-            {item.serialStatus === "completed" ? (
-              <span className="text-emerald-500">完结</span>
-            ) : (
-              <span className="text-blue-500">连载</span>
-            )}
-          </span>
-        )}
-      </div>
-      {/* Title area */}
-      <div
-        className="flex flex-col justify-center p-2"
-        style={{ minHeight: CARD_TITLE_HEIGHT }}
+      <p
+        className="truncate text-sm font-medium text-gray-900 dark:text-gray-100"
+        title={item.title}
       >
-        <p className="truncate text-sm font-medium">{item.title}</p>
-        {item.author && (
-          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
-            {item.author}
-          </p>
-        )}
-        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-gray-400">
-          {item.chapterCount != null && item.chapterCount > 0 && (
-            <span>{item.chapterCount}章</span>
-          )}
-          {item.wordCount != null && item.wordCount > 0 && (
-            <span>{formatWordCount(item.wordCount)}</span>
-          )}
-        </div>
-      </div>
-    </button>
+        {item.title}
+      </p>
+      <p className="truncate text-xs text-gray-400">
+        {[item.author, item.wordCount ? formatWordCount(item.wordCount) : null]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    </PosterCard>
   );
-});
+}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovelLibraryPage() {
@@ -308,6 +302,7 @@ export default function NovelLibraryPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <NovelDownloadPopover />
           <Button
             variant="primary"
             icon={<Plus size={16} />}

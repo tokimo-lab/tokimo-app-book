@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { Button, Empty, Modal, Spin, Tag } from "@tokiomo/components";
 import {
   BookOpen,
@@ -8,9 +7,10 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { api } from "../../generated/rust-api";
 import type { NovelSearchResultOutput } from "../../generated/rust-types";
+import { useNovelDownload } from "../../hooks";
 import { rustUrl } from "../../lib/rust-api-runtime";
 
 // ── SSE helpers ──────────────────────────────────────────────────────────────
@@ -72,20 +72,67 @@ interface BookInfo {
   totalChapters: number;
 }
 
-interface DownloadProgress {
-  downloaded: number;
-  total: number;
-  failed: number;
-  currentChapter: string;
-  done: boolean;
-  novelId?: string;
-}
-
 interface NovelDownloadModalProps {
   open: boolean;
   onClose: () => void;
   libraryId: string;
   libraryName: string;
+}
+
+// ── Ranking helpers ─────────────────────────────────────────────────────────
+
+function normalizeTitle(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function scoreResult(item: NovelSearchResultOutput, keyword: string): number {
+  const nt = normalizeTitle(item.title);
+  const nk = normalizeTitle(keyword);
+  if (nt === nk) return 100;
+  if (nt.startsWith(nk)) return 80;
+  if (nk.startsWith(nt)) return 70;
+  if (nt.includes(nk)) return 60;
+  if (nk.includes(nt)) return 50;
+  return 10;
+}
+
+function parseWordCount(wc: string): number {
+  if (!wc) return 0;
+  const m = wc.match(/([\d.]+)\s*万/);
+  if (m) return Number.parseFloat(m[1]) * 10000;
+  const n = Number.parseInt(wc.replace(/\D/g, ""), 10);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+interface RankedBook {
+  best: NovelSearchResultOutput;
+  sources: NovelSearchResultOutput[];
+  score: number;
+}
+
+function rankAndDedup(
+  results: NovelSearchResultOutput[],
+  keyword: string,
+): RankedBook[] {
+  const groups = new Map<string, NovelSearchResultOutput[]>();
+  for (const item of results) {
+    const key = `${normalizeTitle(item.title)}||${normalizeTitle(item.author || "")}`;
+    const arr = groups.get(key);
+    if (arr) arr.push(item);
+    else groups.set(key, [item]);
+  }
+  const ranked: RankedBook[] = [];
+  for (const sources of groups.values()) {
+    const best = sources.reduce((a, b) =>
+      parseWordCount(b.wordCount) > parseWordCount(a.wordCount) ? b : a,
+    );
+    ranked.push({ best, sources, score: scoreResult(best, keyword) });
+  }
+  ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return parseWordCount(b.best.wordCount) - parseWordCount(a.best.wordCount);
+  });
+  return ranked;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -96,7 +143,7 @@ export default function NovelDownloadModal({
   libraryId,
   libraryName,
 }: NovelDownloadModalProps) {
-  const qc = useQueryClient();
+  const { startDownload } = useNovelDownload();
 
   // Search state
   const [keyword, setKeyword] = useState("");
@@ -105,26 +152,28 @@ export default function NovelDownloadModal({
   const [providerCount, setProviderCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Detail & download state
+  // Detail state
   const [selectedResult, setSelectedResult] =
     useState<NovelSearchResultOutput | null>(null);
   const [bookInfo, setBookInfo] = useState<BookInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [yearInput, setYearInput] = useState("");
-  const [downloadProgress, setDownloadProgress] =
-    useState<DownloadProgress | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const downloadAbortRef = useRef<AbortController | null>(null);
 
   const providersQuery = api.novel.listProviders.useQuery({
     staleTime: 5 * 60_000,
   });
   const bookInfoMutation = api.novel.getBookInfo.useMutation();
 
+  // ── Ranked results ────────────────────────────────────────────────────────
+
+  const rankedBooks = useMemo(
+    () => rankAndDedup(results, keyword),
+    [results, keyword],
+  );
+
   // ── Reset ─────────────────────────────────────────────────────────────────
   const resetAll = useCallback(() => {
     abortRef.current?.abort();
-    downloadAbortRef.current?.abort();
     setKeyword("");
     setResults([]);
     setSearching(false);
@@ -132,8 +181,6 @@ export default function NovelDownloadModal({
     setBookInfo(null);
     setLoadingInfo(false);
     setYearInput("");
-    setDownloadProgress(null);
-    setDownloading(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -154,7 +201,6 @@ export default function NovelDownloadModal({
     setSearching(true);
     setSelectedResult(null);
     setBookInfo(null);
-    setDownloadProgress(null);
     setProviderCount(providersQuery.data?.length ?? 0);
 
     fetchSseEvents(
@@ -185,8 +231,6 @@ export default function NovelDownloadModal({
     (item: NovelSearchResultOutput) => {
       setSelectedResult(item);
       setBookInfo(null);
-      setDownloadProgress(null);
-      setDownloading(false);
       setYearInput("");
       setLoadingInfo(true);
 
@@ -205,114 +249,34 @@ export default function NovelDownloadModal({
   );
 
   const handleBackToResults = useCallback(() => {
-    downloadAbortRef.current?.abort();
     setSelectedResult(null);
     setBookInfo(null);
-    setDownloadProgress(null);
-    setDownloading(false);
   }, []);
 
   // ── Download ──────────────────────────────────────────────────────────────
   const handleDownload = useCallback(() => {
     if (!selectedResult || !libraryId) return;
 
-    downloadAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    downloadAbortRef.current = ctrl;
-
-    setDownloading(true);
-    setDownloadProgress({
-      downloaded: 0,
-      total: bookInfo?.totalChapters ?? 0,
-      failed: 0,
-      currentChapter: "",
-      done: false,
+    startDownload({
+      provider: selectedResult.site,
+      bookId: selectedResult.bookId,
+      libraryId,
+      title: bookInfo?.bookName || selectedResult.title,
+      author: bookInfo?.author || selectedResult.author,
+      year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
+      totalChapters: bookInfo?.totalChapters,
     });
 
-    let downloaded = 0;
-    let failed = 0;
-    let total = bookInfo?.totalChapters ?? 0;
-    let novelId: string | undefined;
-
-    fetchSseEvents(
-      "/api/novel/download",
-      {
-        provider: selectedResult.site,
-        bookId: selectedResult.bookId,
-        libraryId,
-        title: bookInfo?.bookName || selectedResult.title,
-        year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
-      },
-      (evt) => {
-        if (evt.event === "book_info") {
-          try {
-            const info = JSON.parse(evt.data) as {
-              totalChapters?: number;
-              novelId?: string;
-            };
-            if (info.totalChapters) total = info.totalChapters;
-            if (info.novelId) novelId = info.novelId;
-          } catch {
-            /* skip */
-          }
-        } else if (evt.event === "chapter") {
-          downloaded++;
-          try {
-            const ch = JSON.parse(evt.data) as { title?: string };
-            setDownloadProgress({
-              downloaded,
-              total,
-              failed,
-              currentChapter: ch.title ?? "",
-              done: false,
-              novelId,
-            });
-          } catch {
-            setDownloadProgress({
-              downloaded,
-              total,
-              failed,
-              currentChapter: "",
-              done: false,
-              novelId,
-            });
-          }
-        } else if (evt.event === "chapter_error") {
-          failed++;
-          setDownloadProgress((prev) => (prev ? { ...prev, failed } : prev));
-        } else if (evt.event === "done") {
-          try {
-            const d = JSON.parse(evt.data) as { novelId?: string };
-            if (d.novelId) novelId = d.novelId;
-          } catch {
-            /* skip */
-          }
-          setDownloadProgress({
-            downloaded,
-            total,
-            failed,
-            currentChapter: "",
-            done: true,
-            novelId,
-          });
-          setDownloading(false);
-          // Refresh the novel list
-          api.novel.listNovels.invalidate(qc);
-        }
-      },
-      ctrl.signal,
-    ).catch((err) => {
-      if ((err as Error).name !== "AbortError") {
-        console.error("Novel download error:", err);
-      }
-      setDownloading(false);
-    });
-  }, [selectedResult, libraryId, bookInfo, yearInput, qc]);
-
-  const progressPercent =
-    downloadProgress && downloadProgress.total > 0
-      ? Math.round((downloadProgress.downloaded / downloadProgress.total) * 100)
-      : 0;
+    // Close modal — progress tracked in popover
+    handleClose();
+  }, [
+    selectedResult,
+    libraryId,
+    bookInfo,
+    yearInput,
+    startDownload,
+    handleClose,
+  ]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -330,18 +294,16 @@ export default function NovelDownloadModal({
       width={640}
     >
       {selectedResult ? (
-        /* ── Detail / Download view ─────────────────────────────────────── */
+        /* ── Detail view ────────────────────────────────────────────────── */
         <div className="space-y-4">
           {/* Back button */}
-          {!downloadProgress?.done && !downloading && (
-            <button
-              type="button"
-              onClick={handleBackToResults}
-              className="flex items-center gap-1 text-xs text-[var(--accent)] hover:underline"
-            >
-              ← 返回搜索结果
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleBackToResults}
+            className="flex items-center gap-1 text-xs text-[var(--accent)] hover:underline"
+          >
+            ← 返回搜索结果
+          </button>
 
           {loadingInfo ? (
             <div className="flex items-center justify-center py-10">
@@ -389,61 +351,37 @@ export default function NovelDownloadModal({
               </div>
 
               {/* Download config + button */}
-              {!downloadProgress?.done && (
-                <div className="space-y-3 border-t border-[var(--glass-border)] pt-2">
-                  <div className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
-                      目标媒体库
-                    </span>
-                    <span className="text-sm font-medium">{libraryName}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
-                      年份 (可选)
-                    </span>
-                    <input
-                      className="h-9 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
-                      placeholder="2005"
-                      value={yearInput}
-                      onChange={(e) => setYearInput(e.target.value)}
-                      type="number"
-                    />
-                  </div>
-                  <Button
-                    variant="primary"
-                    className="w-full"
-                    icon={<Download size={16} />}
-                    loading={downloading}
-                    disabled={downloading}
-                    onClick={handleDownload}
-                  >
-                    开始下载
-                  </Button>
+              <div className="space-y-3 border-t border-[var(--glass-border)] pt-2">
+                <div className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
+                    目标媒体库
+                  </span>
+                  <span className="text-sm font-medium">{libraryName}</span>
                 </div>
-              )}
-
-              {/* Progress */}
-              {downloadProgress && (
-                <div className="space-y-2 border-t border-[var(--glass-border)] pt-2">
-                  <div className="text-xs font-medium text-[var(--text-secondary)]">
-                    {downloadProgress.done
-                      ? `✅ 下载完成! ${downloadProgress.downloaded}/${downloadProgress.total} 成功, ${downloadProgress.failed} 失败`
-                      : `下载中... ${downloadProgress.downloaded}/${downloadProgress.total}`}
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]">
-                    <div
-                      className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                  {!downloadProgress.done &&
-                    downloadProgress.currentChapter && (
-                      <div className="truncate text-xs text-[var(--text-muted)]">
-                        当前: {downloadProgress.currentChapter}
-                      </div>
-                    )}
+                <div className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
+                    年份 (可选)
+                  </span>
+                  <input
+                    className="h-9 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
+                    placeholder="2005"
+                    value={yearInput}
+                    onChange={(e) => setYearInput(e.target.value)}
+                    type="number"
+                  />
                 </div>
-              )}
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  icon={<Download size={16} />}
+                  onClick={handleDownload}
+                >
+                  开始下载
+                </Button>
+                <p className="text-[10px] text-[var(--text-muted)] text-center">
+                  下载将在后台进行，可在右上角「下载」按钮查看进度和日志
+                </p>
+              </div>
             </div>
           ) : (
             <div className="py-6 text-center text-sm text-red-500">
@@ -493,72 +431,129 @@ export default function NovelDownloadModal({
               <Spin size="small" />
               <span>
                 正在搜索 {providerCount} 个站点...
-                {results.length > 0 && ` 已找到 ${results.length} 个结果`}
+                {rankedBooks.length > 0 && ` 已找到 ${rankedBooks.length} 本书`}
               </span>
             </div>
           )}
 
-          {/* Results */}
-          {results.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-[var(--text-secondary)]">
-                搜索结果
-              </span>
-              <Tag>{results.length}</Tag>
-            </div>
-          )}
-
-          {results.length > 0 ? (
-            <div className="max-h-[400px] divide-y divide-[var(--glass-border)] overflow-y-auto rounded-lg border border-[var(--glass-border)]">
-              {results.map((item, idx) => (
-                <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: results may have duplicate site+bookId from parallel streams
-                  key={`${item.site}-${item.bookId}-${idx}`}
-                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.04]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <BookOpen
-                        size={14}
-                        className="shrink-0 text-[var(--accent)]"
-                      />
-                      <span className="truncate text-sm font-medium text-[var(--text-primary)]">
-                        {item.title}
-                      </span>
-                      <Tag className="!text-[10px]">{item.site}</Tag>
-                    </div>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-muted)]">
-                      <span className="flex items-center gap-1">
-                        <User size={11} />
-                        {item.author || "—"}
-                      </span>
-                      {item.latestChapter && (
-                        <span className="max-w-[200px] truncate">
-                          最新: {item.latestChapter}
-                        </span>
-                      )}
-                      {item.wordCount && <span>字数: {item.wordCount}</span>}
-                    </div>
+          {/* Best match */}
+          {rankedBooks.length > 0 && rankedBooks[0].score >= 80 && (
+            <div className="rounded-lg border-2 border-[var(--accent)]/30 bg-[var(--accent)]/[0.04] p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide">
+                  最佳匹配
+                </span>
+                {rankedBooks[0].sources.length > 1 && (
+                  <Tag className="!text-[10px]">
+                    {rankedBooks[0].sources.length} 个源
+                  </Tag>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <BookOpen
+                      size={16}
+                      className="shrink-0 text-[var(--accent)]"
+                    />
+                    <span className="font-semibold text-sm text-[var(--text-primary)]">
+                      {rankedBooks[0].best.title}
+                    </span>
                   </div>
-                  <Button
-                    size="small"
-                    variant="text"
-                    icon={<ChevronRight size={14} />}
-                    onClick={() => handleViewDetails(item)}
-                  >
-                    查看详情
-                  </Button>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1">
+                      <User size={11} />
+                      {rankedBooks[0].best.author || "—"}
+                    </span>
+                    {rankedBooks[0].best.wordCount && (
+                      <span>字数: {rankedBooks[0].best.wordCount}</span>
+                    )}
+                  </div>
                 </div>
-              ))}
+                <Button
+                  variant="primary"
+                  size="small"
+                  icon={<Download size={14} />}
+                  onClick={() => handleViewDetails(rankedBooks[0].best)}
+                >
+                  下载
+                </Button>
+              </div>
             </div>
-          ) : (
-            !searching && (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="输入关键词搜索小说"
-              />
-            )
           )}
+
+          {/* Other results */}
+          {(() => {
+            const others =
+              rankedBooks.length > 0 && rankedBooks[0].score >= 80
+                ? rankedBooks.slice(1)
+                : rankedBooks;
+            return others.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-[var(--text-secondary)]">
+                    {rankedBooks[0]?.score >= 80 ? "其他结果" : "搜索结果"}
+                  </span>
+                  <Tag>{others.length}</Tag>
+                </div>
+                <div className="max-h-[350px] divide-y divide-[var(--glass-border)] overflow-y-auto rounded-lg border border-[var(--glass-border)]">
+                  {others.map((book) => (
+                    <div
+                      key={`${book.best.site}-${book.best.bookId}`}
+                      className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.04]"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <BookOpen
+                            size={14}
+                            className="shrink-0 text-[var(--accent)]"
+                          />
+                          <span className="truncate text-sm font-medium text-[var(--text-primary)]">
+                            {book.best.title}
+                          </span>
+                          <Tag className="!text-[10px]">{book.best.site}</Tag>
+                          {book.sources.length > 1 && (
+                            <Tag className="!text-[10px]">
+                              +{book.sources.length - 1}
+                            </Tag>
+                          )}
+                        </div>
+                        <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-muted)]">
+                          <span className="flex items-center gap-1">
+                            <User size={11} />
+                            {book.best.author || "—"}
+                          </span>
+                          {book.best.latestChapter && (
+                            <span className="max-w-[200px] truncate">
+                              最新: {book.best.latestChapter}
+                            </span>
+                          )}
+                          {book.best.wordCount && (
+                            <span>字数: {book.best.wordCount}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        size="small"
+                        variant="text"
+                        icon={<ChevronRight size={14} />}
+                        onClick={() => handleViewDetails(book.best)}
+                      >
+                        查看详情
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              !searching && rankedBooks.length === 0 && (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="输入关键词搜索小说"
+                />
+              )
+            );
+          })()}
         </div>
       )}
     </Modal>

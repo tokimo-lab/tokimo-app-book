@@ -277,12 +277,14 @@ interface NovelReaderContentProps {
 }
 
 export function NovelReaderContent({ win }: NovelReaderContentProps) {
-  const [currentChapterId, setCurrentChapterId] = useState(win.chapterId);
+  const [currentChapterId, setCurrentChapterId] = useState(
+    win.metadata.chapterId,
+  );
   const [settings, setSettings] = useState<ReaderSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const novelId = win.novelId;
+  const novelId = win.metadata.novelId;
   const themeColors = THEME_MAP[settings.theme];
 
   const updateSettings = useCallback((patch: Partial<ReaderSettings>) => {

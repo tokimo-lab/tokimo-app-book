@@ -185,15 +185,16 @@ export default function NovelDetailPage() {
     (chapterId: string) => {
       if (!novelId) return;
       openWindow({
-        filePath: `novel://${novelId}/${chapterId}`,
-        fileName: novel?.title ?? "小说",
-        fileSystemId: "",
         type: "novel",
+        title: novel?.title ?? "小说",
+        sourceType: "novel",
+        sourceId: novelId,
+        libraryId: id,
         novelId,
         chapterId,
       });
     },
-    [openWindow, novelId, novel?.title],
+    [openWindow, novelId, novel?.title, id],
   );
 
   const handleStartReading = useCallback(() => {

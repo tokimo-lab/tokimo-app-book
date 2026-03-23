@@ -116,6 +116,7 @@ pub struct NovelChapterOutput {
     #[ts(type = "number | null")]
     pub word_count: Option<i32>,
     pub volume_id: Option<String>,
+    pub is_vip: bool,
 }
 
 #[derive(Debug, Serialize, Clone, TS)]
@@ -435,10 +436,41 @@ async fn do_download_novel(
     // Create directory (ignore error if already exists)
     let _ = vfs.mkdir(StdPath::new(&novel_dir)).await;
 
+    // Search alternative providers for VIP chapter fallback.
+    // Runs concurrently with the setup above; result used inside the download loop.
+    events.push(
+        Event::default()
+            .event("searching_alternatives")
+            .data(
+                serde_json::to_string(&serde_json::json!({
+                    "title": &novel_title,
+                    "provider": &input.provider,
+                }))
+                .unwrap_or_default(),
+            ),
+    );
+    let alt_map =
+        build_alt_chapter_map(&novel_title, &book_info.author, &input.provider).await;
+    let alt_chapter_count: usize = alt_map.values().map(|v| v.len()).sum();
+    if alt_chapter_count > 0 {
+        events.push(
+            Event::default()
+                .event("alt_sources_ready")
+                .data(
+                    serde_json::to_string(&serde_json::json!({
+                        "mappedChapters": alt_chapter_count,
+                    }))
+                    .unwrap_or_default(),
+                ),
+        );
+    }
+
     // Download chapters
     let mut download_stream = novel_downloader::download_stream(&input.provider, &input.book_id);
     let mut downloaded = 0usize;
+    let mut rescued = 0usize;
     let mut _failed = 0usize;
+    let mut vip_skipped = 0usize;
     let mut current_vol_id: Option<Uuid> = None;
 
     while let Some(event) = download_stream.next().await {
@@ -450,17 +482,108 @@ async fn do_download_novel(
                 content,
             }) => {
                 let ch_num = index as i32;
+
+                // Update current volume when a new volume header appears
+                if let Some(ref vol_name) = volume {
+                    current_vol_id = volume_map.get(vol_name).copied();
+                }
+
+                // Detect VIP stub content — try alternative sources first
+                if is_vip_stub(&content) {
+                    let norm_title = normalize_for_matching(&title);
+                    let alt = match alt_map.get(&norm_title) {
+                        Some(alts) => try_alt_chapter(alts).await,
+                        None => None,
+                    };
+
+                    if let Some((alt_content, alt_provider)) = alt {
+                        // Successfully fetched from alternative source — save as real chapter
+                        let safe_title = sanitize_filename(&title);
+                        let filename = format!("第{:03}章 {}.txt", ch_num + 1, safe_title);
+                        let file_path = format!("{novel_dir}/{filename}");
+                        let word_cnt = alt_content.chars().count() as i32;
+                        let content_bytes = alt_content.into_bytes();
+
+                        match vfs.put(StdPath::new(&file_path), content_bytes).await {
+                            Ok(_) => {
+                                let ch_id = Uuid::new_v4();
+                                let chapter = novel_chapters::ActiveModel {
+                                    id: Set(ch_id),
+                                    novel_id: Set(novel_id),
+                                    volume_id: Set(current_vol_id),
+                                    chapter_number: Set(ch_num),
+                                    title: Set(Some(title.clone())),
+                                    word_count: Set(Some(word_cnt)),
+                                    file_path: Set(Some(file_path)),
+                                    is_vip: Set(false),
+                                    created_at: Set(Some(now)),
+                                    updated_at: Set(Some(now)),
+                                    ..Default::default()
+                                };
+                                let _ = novel_chapters::Entity::insert(chapter).exec(&db).await;
+                                downloaded += 1;
+                                rescued += 1;
+                                events.push(
+                                    Event::default()
+                                        .event("chapter")
+                                        .data(
+                                            serde_json::to_string(&serde_json::json!({
+                                                "index": index,
+                                                "title": title,
+                                                "downloaded": downloaded,
+                                                "altSource": alt_provider,
+                                            }))
+                                            .unwrap_or_default(),
+                                        ),
+                                );
+                                continue;
+                            }
+                            Err(e) => {
+                                warn!("Failed to write alt chapter file: {e}");
+                                // fall through to VIP marking
+                            }
+                        }
+                    }
+
+                    // No alternative found (or write failed) — mark as VIP
+                    let ch_id = Uuid::new_v4();
+                    let chapter = novel_chapters::ActiveModel {
+                        id: Set(ch_id),
+                        novel_id: Set(novel_id),
+                        volume_id: Set(current_vol_id),
+                        chapter_number: Set(ch_num),
+                        title: Set(Some(title.clone())),
+                        word_count: Set(Some(0)),
+                        file_path: Set(None),
+                        is_vip: Set(true),
+                        created_at: Set(Some(now)),
+                        updated_at: Set(Some(now)),
+                        ..Default::default()
+                    };
+                    let _ = novel_chapters::Entity::insert(chapter).exec(&db).await;
+                    vip_skipped += 1;
+                    events.push(
+                        Event::default()
+                            .event("chapter_vip")
+                            .data(
+                                serde_json::to_string(&serde_json::json!({
+                                    "index": index,
+                                    "title": title,
+                                    "vipSkipped": vip_skipped,
+                                    "triedAlternatives": alt_map.contains_key(&norm_title),
+                                }))
+                                .unwrap_or_default(),
+                            ),
+                    );
+                    continue;
+                }
+
                 let safe_title = sanitize_filename(&title);
                 let filename = format!("第{:03}章 {}.txt", ch_num + 1, safe_title);
                 let file_path = format!("{novel_dir}/{filename}");
 
                 let content_bytes = content.as_bytes().to_vec();
                 let word_cnt = content.chars().count() as i32;
-
-                // Update current volume when a new volume header appears
-                if let Some(ref vol_name) = volume {
-                    current_vol_id = volume_map.get(vol_name).copied();
-                }
 
                 match vfs.put(StdPath::new(&file_path), content_bytes).await {
                     Ok(_) => {
@@ -474,6 +597,7 @@ async fn do_download_novel(
                             title: Set(Some(title.clone())),
                             word_count: Set(Some(word_cnt)),
                             file_path: Set(Some(file_path)),
+                            is_vip: Set(false),
                             created_at: Set(Some(now)),
                             updated_at: Set(Some(now)),
                             ..Default::default()
@@ -531,6 +655,8 @@ async fn do_download_novel(
                                 "novelId": novel_id.to_string(),
                                 "downloaded": d,
                                 "failed": f,
+                                "vipSkipped": vip_skipped,
+                                "rescued": rescued,
                             }))
                             .unwrap_or_default(),
                         ),
@@ -708,11 +834,15 @@ pub async fn get_chapter_content(
     };
 
     // Read file content from VFS
-    let content = match chapter.file_path.as_deref() {
-        Some(file_path) => {
-            read_chapter_file(&state, novel.library_id, file_path).await
+    let content = if chapter.is_vip {
+        "VIP章节，内容暂不可用".to_string()
+    } else {
+        match chapter.file_path.as_deref() {
+            Some(file_path) => {
+                read_chapter_file(&state, novel.library_id, file_path).await
+            }
+            None => "章节内容未下载".to_string(),
         }
-        None => "章节内容未下载".to_string(),
     };
 
     // Adjacent chapters
@@ -803,6 +933,7 @@ fn chapter_to_output(c: &novel_chapters::Model) -> NovelChapterOutput {
         title: c.title.clone(),
         word_count: c.word_count,
         volume_id: c.volume_id.map(|v| v.to_string()),
+        is_vip: c.is_vip,
     }
 }
 
@@ -844,6 +975,25 @@ fn normalize_serial_status(raw: &str) -> String {
     }
 }
 
+/// Detect VIP stub content that providers return for paid/locked chapters.
+fn is_vip_stub(content: &str) -> bool {
+    let trimmed = content.trim();
+    // Known VIP placeholder patterns from providers (qidian, sfacg, n17k, ciweimao)
+    const VIP_PATTERNS: &[&str] = &[
+        "[VIP章节，需要订阅]",
+        "[VIP章节，需要购买后阅读]",
+        "[VIP图片章节，需要登录并订阅]",
+    ];
+    if VIP_PATTERNS.iter().any(|p| trimmed == *p) {
+        return true;
+    }
+    // Generic detection: very short content starting with [VIP or containing VIP marker
+    if trimmed.len() < 80 && trimmed.starts_with("[VIP") {
+        return true;
+    }
+    false
+}
+
 fn sanitize_filename(name: &str) -> String {
     name.chars()
         .map(|c| match c {
@@ -853,4 +1003,137 @@ fn sanitize_filename(name: &str) -> String {
         .collect::<String>()
         .trim()
         .to_string()
+}
+
+// ── Alternative-source helpers ───────────────────────────────────────────────
+
+/// Map from a normalized chapter title to possible alternative downloads:
+/// each entry is `(provider_id, book_id, chapter_id)`.
+type AltChapterMap = std::collections::HashMap<String, Vec<(String, String, String)>>;
+
+/// Normalize a chapter title for cross-provider matching.
+/// Strips the "第N章" number prefix and keeps only alphanumeric/CJK chars.
+fn normalize_for_matching(s: &str) -> String {
+    let s = s.trim();
+    // Strip "第...章 " prefix so "第123章 少年" → "少年"
+    let body = if let Some(pos) = s.find('章') {
+        let after = s[pos + '章'.len_utf8()..].trim();
+        if after.is_empty() { s } else { after }
+    } else {
+        s
+    };
+    body.chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect::<String>()
+        .to_lowercase()
+}
+
+/// Search other providers for the same book and build a chapter lookup map.
+/// Runs a search for `title` with an 8-second deadline, then fetches book info
+/// from the top matches in parallel. Returns empty map if nothing is found.
+async fn build_alt_chapter_map(
+    title: &str,
+    author: &str,
+    primary_provider: &str,
+) -> AltChapterMap {
+    use tokio::time::Duration;
+
+    let norm_title = normalize_for_matching(title);
+    let norm_author = normalize_for_matching(author);
+
+    // Collect search results within 8 seconds (stream stays open up to 15s otherwise)
+    let search_results: Vec<novel_downloader::SearchResult> = {
+        let mut stream = novel_downloader::search_stream(title);
+        let mut collected = Vec::new();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+        loop {
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            match tokio::time::timeout(remaining, stream.next()).await {
+                Ok(Some(r)) => collected.push(r),
+                _ => break,
+            }
+        }
+        collected
+    };
+
+    // Filter: matching title+author from a different provider, deduplicate by (site, book_id)
+    let mut seen = std::collections::HashSet::new();
+    let candidates: Vec<_> = search_results
+        .into_iter()
+        .filter(|r| {
+            r.site != primary_provider
+                && normalize_for_matching(&r.title) == norm_title
+                && {
+                    let na = normalize_for_matching(&r.author);
+                    na.contains(&norm_author) || norm_author.contains(&na)
+                }
+                && seen.insert((r.site.clone(), r.book_id.clone()))
+        })
+        .take(5)
+        .collect();
+
+    if candidates.is_empty() {
+        return AltChapterMap::new();
+    }
+
+    // Fetch chapter lists from each candidate in parallel (10s per request)
+    let futures: Vec<_> = candidates
+        .into_iter()
+        .map(|r| {
+            let provider = r.site.clone();
+            let book_id = r.book_id.clone();
+            async move {
+                match tokio::time::timeout(
+                    Duration::from_secs(10),
+                    novel_downloader::get_book_info(&provider, &book_id),
+                )
+                .await
+                {
+                    Ok(Ok(info)) => Some((provider, book_id, info)),
+                    _ => None,
+                }
+            }
+        })
+        .collect();
+
+    let book_infos = futures_util::future::join_all(futures).await;
+
+    let mut map = AltChapterMap::new();
+    for (provider, book_id, info) in book_infos.into_iter().flatten() {
+        for vol in &info.volumes {
+            for ch in &vol.chapters {
+                let norm = normalize_for_matching(&ch.title);
+                if !norm.is_empty() {
+                    map.entry(norm)
+                        .or_default()
+                        .push((provider.clone(), book_id.clone(), ch.chapter_id.clone()));
+                }
+            }
+        }
+    }
+    map
+}
+
+/// Try to fetch a chapter from alternative providers.
+/// Returns `(content, provider_id)` for the first successful non-VIP result.
+async fn try_alt_chapter(
+    alts: &[(String, String, String)],
+) -> Option<(String, String)> {
+    for (provider_id, book_id, chapter_id) in alts {
+        let result = tokio::time::timeout(
+            tokio::time::Duration::from_secs(8),
+            novel_downloader::get_chapter(provider_id, book_id, chapter_id),
+        )
+        .await;
+        match result {
+            Ok(Ok(ch)) if !is_vip_stub(&ch.content) && ch.content.len() > 80 => {
+                return Some((ch.content, provider_id.clone()));
+            }
+            _ => continue,
+        }
+    }
+    None
 }

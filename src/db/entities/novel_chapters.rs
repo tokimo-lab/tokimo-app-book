@@ -24,6 +24,7 @@ pub struct Model {
     pub source_url: Option<String>,
     pub created_at: Option<DateTimeWithTimeZone>,
     pub updated_at: Option<DateTimeWithTimeZone>,
+    pub is_vip: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

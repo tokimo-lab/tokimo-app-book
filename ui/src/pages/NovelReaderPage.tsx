@@ -21,10 +21,8 @@ export default function NovelReaderPage() {
   useEffect(() => {
     if (novelId && chapterId) {
       openWindow({
-        filePath: `novel://${novelId}/${chapterId}`,
-        fileName: "小说",
-        fileSystemId: "",
         type: "novel",
+        title: "小说",
         novelId,
         chapterId,
       });
