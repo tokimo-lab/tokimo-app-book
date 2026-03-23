@@ -248,7 +248,7 @@ pub async fn get_book_info(
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let info = novel_downloader::get_book_info(&input.provider, &input.book_id)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to get book info: {e}")))?;
+        .map_err(|e| AppError::BadRequest(format!("Failed to get book info: {e}")))?;
 
     Ok(ok(serde_json::json!({
         "bookName": info.book_name,
@@ -315,7 +315,7 @@ async fn do_download_novel(
     // Fetch book metadata
     let book_info = novel_downloader::get_book_info(&input.provider, &input.book_id)
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to get book info: {e}")))?;
+        .map_err(|e| AppError::BadRequest(format!("Failed to get book info: {e}")))?;
 
     let novel_title = input
         .title
@@ -388,22 +388,19 @@ async fn do_download_novel(
 
     let mut events = Vec::new();
     events.push(
-        Event::default()
-            .event("book_info")
-            .data(
-                serde_json::to_string(&serde_json::json!({
-                    "novelId": novel_id.to_string(),
-                    "title": &novel_title,
-                    "author": &book_info.author,
-                    "totalChapters": total_chapters,
-                }))
-                .unwrap_or_default(),
-            ),
+        Event::default().event("book_info").data(
+            serde_json::to_string(&serde_json::json!({
+                "novelId": novel_id.to_string(),
+                "title": &novel_title,
+                "author": &book_info.author,
+                "totalChapters": total_chapters,
+            }))
+            .unwrap_or_default(),
+        ),
     );
 
     // Create volumes
-    let mut volume_map: std::collections::HashMap<String, Uuid> =
-        std::collections::HashMap::new();
+    let mut volume_map: std::collections::HashMap<String, Uuid> = std::collections::HashMap::new();
     for (vi, vol) in book_info.volumes.iter().enumerate() {
         let vol_id = Uuid::new_v4();
         let vol_model = novel_volumes::ActiveModel {
@@ -439,29 +436,24 @@ async fn do_download_novel(
     // Search alternative providers for VIP chapter fallback.
     // Runs concurrently with the setup above; result used inside the download loop.
     events.push(
-        Event::default()
-            .event("searching_alternatives")
-            .data(
-                serde_json::to_string(&serde_json::json!({
-                    "title": &novel_title,
-                    "provider": &input.provider,
-                }))
-                .unwrap_or_default(),
-            ),
+        Event::default().event("searching_alternatives").data(
+            serde_json::to_string(&serde_json::json!({
+                "title": &novel_title,
+                "provider": &input.provider,
+            }))
+            .unwrap_or_default(),
+        ),
     );
-    let alt_map =
-        build_alt_chapter_map(&novel_title, &book_info.author, &input.provider).await;
+    let alt_map = build_alt_chapter_map(&novel_title, &book_info.author, &input.provider).await;
     let alt_chapter_count: usize = alt_map.values().map(|v| v.len()).sum();
     if alt_chapter_count > 0 {
         events.push(
-            Event::default()
-                .event("alt_sources_ready")
-                .data(
-                    serde_json::to_string(&serde_json::json!({
-                        "mappedChapters": alt_chapter_count,
-                    }))
-                    .unwrap_or_default(),
-                ),
+            Event::default().event("alt_sources_ready").data(
+                serde_json::to_string(&serde_json::json!({
+                    "mappedChapters": alt_chapter_count,
+                }))
+                .unwrap_or_default(),
+            ),
         );
     }
 
@@ -524,17 +516,15 @@ async fn do_download_novel(
                                 downloaded += 1;
                                 rescued += 1;
                                 events.push(
-                                    Event::default()
-                                        .event("chapter")
-                                        .data(
-                                            serde_json::to_string(&serde_json::json!({
-                                                "index": index,
-                                                "title": title,
-                                                "downloaded": downloaded,
-                                                "altSource": alt_provider,
-                                            }))
-                                            .unwrap_or_default(),
-                                        ),
+                                    Event::default().event("chapter").data(
+                                        serde_json::to_string(&serde_json::json!({
+                                            "index": index,
+                                            "title": title,
+                                            "downloaded": downloaded,
+                                            "altSource": alt_provider,
+                                        }))
+                                        .unwrap_or_default(),
+                                    ),
                                 );
                                 continue;
                             }
@@ -563,17 +553,15 @@ async fn do_download_novel(
                     let _ = novel_chapters::Entity::insert(chapter).exec(&db).await;
                     vip_skipped += 1;
                     events.push(
-                        Event::default()
-                            .event("chapter_vip")
-                            .data(
-                                serde_json::to_string(&serde_json::json!({
-                                    "index": index,
-                                    "title": title,
-                                    "vipSkipped": vip_skipped,
-                                    "triedAlternatives": alt_map.contains_key(&norm_title),
-                                }))
-                                .unwrap_or_default(),
-                            ),
+                        Event::default().event("chapter_vip").data(
+                            serde_json::to_string(&serde_json::json!({
+                                "index": index,
+                                "title": title,
+                                "vipSkipped": vip_skipped,
+                                "triedAlternatives": alt_map.contains_key(&norm_title),
+                            }))
+                            .unwrap_or_default(),
+                        ),
                     );
                     continue;
                 }
@@ -606,16 +594,14 @@ async fn do_download_novel(
 
                         downloaded += 1;
                         events.push(
-                            Event::default()
-                                .event("chapter")
-                                .data(
-                                    serde_json::to_string(&serde_json::json!({
-                                        "index": index,
-                                        "title": title,
-                                        "downloaded": downloaded,
-                                    }))
-                                    .unwrap_or_default(),
-                                ),
+                            Event::default().event("chapter").data(
+                                serde_json::to_string(&serde_json::json!({
+                                    "index": index,
+                                    "title": title,
+                                    "downloaded": downloaded,
+                                }))
+                                .unwrap_or_default(),
+                            ),
                         );
                     }
                     Err(e) => {
@@ -631,16 +617,14 @@ async fn do_download_novel(
             }) => {
                 _failed += 1;
                 events.push(
-                    Event::default()
-                        .event("chapter_error")
-                        .data(
-                            serde_json::to_string(&serde_json::json!({
-                                "index": index,
-                                "title": title,
-                                "error": error,
-                            }))
-                            .unwrap_or_default(),
-                        ),
+                    Event::default().event("chapter_error").data(
+                        serde_json::to_string(&serde_json::json!({
+                            "index": index,
+                            "title": title,
+                            "error": error,
+                        }))
+                        .unwrap_or_default(),
+                    ),
                 );
             }
             Ok(novel_downloader::DownloadEvent::Done {
@@ -648,18 +632,16 @@ async fn do_download_novel(
                 failed: f,
             }) => {
                 events.push(
-                    Event::default()
-                        .event("done")
-                        .data(
-                            serde_json::to_string(&serde_json::json!({
-                                "novelId": novel_id.to_string(),
-                                "downloaded": d,
-                                "failed": f,
-                                "vipSkipped": vip_skipped,
-                                "rescued": rescued,
-                            }))
-                            .unwrap_or_default(),
-                        ),
+                    Event::default().event("done").data(
+                        serde_json::to_string(&serde_json::json!({
+                            "novelId": novel_id.to_string(),
+                            "downloaded": d,
+                            "failed": f,
+                            "vipSkipped": vip_skipped,
+                            "rescued": rescued,
+                        }))
+                        .unwrap_or_default(),
+                    ),
                 );
             }
             Ok(novel_downloader::DownloadEvent::BookInfo { .. }) => {
@@ -693,9 +675,10 @@ pub async fn list_novels(
     let sort_dir = q.sort_dir.as_deref().unwrap_or("asc");
     let search = q.search.as_deref();
 
-    let (items, total) =
-        NovelRepo::list_novels(&state.db, library_id, page, page_size, sort_by, sort_dir, search)
-            .await?;
+    let (items, total) = NovelRepo::list_novels(
+        &state.db, library_id, page, page_size, sort_by, sort_dir, search,
+    )
+    .await?;
 
     Ok(ok(serde_json::json!({
         "items": items,
@@ -824,12 +807,10 @@ pub async fn get_chapter_content(
 
     // Resolve volume title
     let volume_title = match chapter.volume_id {
-        Some(vol_id) => {
-            novel_volumes::Entity::find_by_id(vol_id)
-                .one(db)
-                .await?
-                .and_then(|v| v.title)
-        }
+        Some(vol_id) => novel_volumes::Entity::find_by_id(vol_id)
+            .one(db)
+            .await?
+            .and_then(|v| v.title),
         None => None,
     };
 
@@ -838,9 +819,7 @@ pub async fn get_chapter_content(
         "VIP章节，内容暂不可用".to_string()
     } else {
         match chapter.file_path.as_deref() {
-            Some(file_path) => {
-                read_chapter_file(&state, novel.library_id, file_path).await
-            }
+            Some(file_path) => read_chapter_file(&state, novel.library_id, file_path).await,
             None => "章节内容未下载".to_string(),
         }
     };
@@ -873,10 +852,10 @@ async fn download_and_upload_cover(
         .get(cover_url)
         .send()
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to fetch cover: {e}")))?;
+        .map_err(|e| AppError::BadRequest(format!("Failed to fetch cover: {e}")))?;
 
     if !resp.status().is_success() {
-        return Err(AppError::Internal(format!(
+        return Err(AppError::BadRequest(format!(
             "Cover HTTP {}",
             resp.status()
         )));
@@ -885,7 +864,7 @@ async fn download_and_upload_cover(
     let bytes = resp
         .bytes()
         .await
-        .map_err(|e| AppError::Internal(format!("Failed to read cover bytes: {e}")))?;
+        .map_err(|e| AppError::BadRequest(format!("Failed to read cover bytes: {e}")))?;
 
     let ext = cover_url
         .rsplit('.')
@@ -1018,7 +997,11 @@ fn normalize_for_matching(s: &str) -> String {
     // Strip "第...章 " prefix so "第123章 少年" → "少年"
     let body = if let Some(pos) = s.find('章') {
         let after = s[pos + '章'.len_utf8()..].trim();
-        if after.is_empty() { s } else { after }
+        if after.is_empty() {
+            s
+        } else {
+            after
+        }
     } else {
         s
     };
@@ -1031,11 +1014,7 @@ fn normalize_for_matching(s: &str) -> String {
 /// Search other providers for the same book and build a chapter lookup map.
 /// Runs a search for `title` with an 8-second deadline, then fetches book info
 /// from the top matches in parallel. Returns empty map if nothing is found.
-async fn build_alt_chapter_map(
-    title: &str,
-    author: &str,
-    primary_provider: &str,
-) -> AltChapterMap {
+async fn build_alt_chapter_map(title: &str, author: &str, primary_provider: &str) -> AltChapterMap {
     use tokio::time::Duration;
 
     let norm_title = normalize_for_matching(title);
@@ -1107,9 +1086,11 @@ async fn build_alt_chapter_map(
             for ch in &vol.chapters {
                 let norm = normalize_for_matching(&ch.title);
                 if !norm.is_empty() {
-                    map.entry(norm)
-                        .or_default()
-                        .push((provider.clone(), book_id.clone(), ch.chapter_id.clone()));
+                    map.entry(norm).or_default().push((
+                        provider.clone(),
+                        book_id.clone(),
+                        ch.chapter_id.clone(),
+                    ));
                 }
             }
         }
@@ -1119,9 +1100,7 @@ async fn build_alt_chapter_map(
 
 /// Try to fetch a chapter from alternative providers.
 /// Returns `(content, provider_id)` for the first successful non-VIP result.
-async fn try_alt_chapter(
-    alts: &[(String, String, String)],
-) -> Option<(String, String)> {
+async fn try_alt_chapter(alts: &[(String, String, String)]) -> Option<(String, String)> {
     for (provider_id, book_id, chapter_id) in alts {
         let result = tokio::time::timeout(
             tokio::time::Duration::from_secs(8),

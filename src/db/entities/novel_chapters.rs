@@ -18,13 +18,13 @@ pub struct Model {
     pub word_count: Option<i32>,
     #[sea_orm(column_type = "Text", nullable)]
     pub file_path: Option<String>,
+    pub is_vip: bool,
     #[sea_orm(column_type = "Text", nullable)]
     pub source_chapter_id: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub source_url: Option<String>,
     pub created_at: Option<DateTimeWithTimeZone>,
     pub updated_at: Option<DateTimeWithTimeZone>,
-    pub is_vip: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
