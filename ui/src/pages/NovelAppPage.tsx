@@ -15,7 +15,7 @@ import type { NovelOutput } from "../../generated/rust-api";
 import { api } from "../../generated/rust-api";
 import { useMessage } from "../../hooks";
 import { buildPosterUrl } from "../../lib/poster";
-import { LibrarySearchBox } from "./LibrarySearchBox";
+import { AppSearchBox } from "./AppSearchBox";
 
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;
@@ -114,7 +114,7 @@ function BookCard({
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-export default function NovelLibraryPage() {
+export default function NovelAppPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const message = useMessage();
@@ -177,17 +177,14 @@ export default function NovelLibraryPage() {
   }, []);
 
   // ── Data ────────────────────────────────────────────────────────────────────
-  const libraryQuery = api.mediaLibrary.getById.useQuery(
-    { id: id! },
-    { enabled: !!id },
-  );
+  const libraryQuery = api.app.getById.useQuery({ id: id! }, { enabled: !!id });
   const library = libraryQuery.data;
 
   const sortParams = parseSortValue(sortValue);
 
   const novelsQuery = api.novel.listNovels.useQuery(
     {
-      libraryId: id!,
+      appId: id!,
       page,
       pageSize,
       sortBy: sortParams.sortBy,
@@ -255,13 +252,13 @@ export default function NovelLibraryPage() {
 
   const handleItemClick = useCallback(
     (item: NovelOutput) => {
-      navigate(`/dashboard/library/${id}/novel/${item.id}`);
+      navigate(`/dashboard/app/${id}/novel/${item.id}`);
     },
     [navigate, id],
   );
 
   // ── Sync ────────────────────────────────────────────────────────────────────
-  const syncMut = api.mediaLibrary.sync.useMutation({
+  const syncMut = api.app.sync.useMutation({
     onSuccess: () => {
       message.success({ content: "同步已开始" });
       setSyncModalOpen(false);
@@ -281,13 +278,13 @@ export default function NovelLibraryPage() {
       {/* Global search box — matches video library UX */}
       {id && (
         <div className="mb-6">
-          <LibrarySearchBox
-            libraryId={id}
+          <AppSearchBox
+            appId={id}
             isTv={false}
             isNovel
             onSelect={() => {}}
             onSelectNovel={(item) =>
-              navigate(`/dashboard/library/${id}/novel/${item.id}`)
+              navigate(`/dashboard/app/${id}/novel/${item.id}`)
             }
           />
         </div>
@@ -410,7 +407,7 @@ export default function NovelLibraryPage() {
         footer={null}
       >
         <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          将扫描媒体库目录并更新小说元数据。
+          将扫描应用目录并更新小说元数据。
         </p>
         <div className="flex justify-end gap-2">
           <Button onClick={() => setSyncModalOpen(false)}>取消</Button>
@@ -428,8 +425,8 @@ export default function NovelLibraryPage() {
       <NovelDownloadModal
         open={downloadOpen}
         onClose={() => setDownloadOpen(false)}
-        libraryId={id ?? ""}
-        libraryName={library?.name ?? "小说库"}
+        appId={id ?? ""}
+        appName={library?.name ?? "小说库"}
       />
     </div>
   );

@@ -75,8 +75,8 @@ interface BookInfo {
 interface NovelDownloadModalProps {
   open: boolean;
   onClose: () => void;
-  libraryId: string;
-  libraryName: string;
+  appId: string;
+  appName: string;
 }
 
 // ── Ranking helpers ─────────────────────────────────────────────────────────
@@ -140,8 +140,8 @@ function rankAndDedup(
 export default function NovelDownloadModal({
   open,
   onClose,
-  libraryId,
-  libraryName,
+  appId,
+  appName,
 }: NovelDownloadModalProps) {
   const { startDownload } = useNovelDownload();
 
@@ -255,12 +255,12 @@ export default function NovelDownloadModal({
 
   // ── Download ──────────────────────────────────────────────────────────────
   const handleDownload = useCallback(() => {
-    if (!selectedResult || !libraryId) return;
+    if (!selectedResult || !appId) return;
 
     startDownload({
       provider: selectedResult.site,
       bookId: selectedResult.bookId,
-      libraryId,
+      appId,
       title: bookInfo?.bookName || selectedResult.title,
       author: bookInfo?.author || selectedResult.author,
       year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
@@ -269,14 +269,7 @@ export default function NovelDownloadModal({
 
     // Close modal — progress tracked in popover
     handleClose();
-  }, [
-    selectedResult,
-    libraryId,
-    bookInfo,
-    yearInput,
-    startDownload,
-    handleClose,
-  ]);
+  }, [selectedResult, appId, bookInfo, yearInput, startDownload, handleClose]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -354,9 +347,9 @@ export default function NovelDownloadModal({
               <div className="space-y-3 border-t border-[var(--glass-border)] pt-2">
                 <div className="flex items-center gap-3">
                   <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
-                    目标媒体库
+                    目标应用
                   </span>
-                  <span className="text-sm font-medium">{libraryName}</span>
+                  <span className="text-sm font-medium">{appName}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">

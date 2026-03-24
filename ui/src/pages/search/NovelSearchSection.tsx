@@ -160,7 +160,7 @@ export default function NovelSearchSection() {
   const downloadAbortRef = useRef<AbortController | null>(null);
 
   // Library list for novel type
-  const librariesQuery = api.mediaLibrary.list.useQuery({ staleTime: 60_000 });
+  const librariesQuery = api.app.list.useQuery({ staleTime: 60_000 });
   const novelLibraries = (librariesQuery.data ?? []).filter(
     (lib) => lib.type === "novel",
   );
@@ -275,7 +275,7 @@ export default function NovelSearchSection() {
       {
         provider: selectedResult.site,
         bookId: selectedResult.bookId,
-        libraryId: selectedLibraryId,
+        appId: selectedLibraryId,
         title: bookInfo?.bookName || selectedResult.title,
         year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
       },
@@ -608,7 +608,7 @@ export default function NovelSearchSection() {
               <div className="space-y-3 pt-2 border-t border-[var(--glass-border)]">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-[var(--text-muted)] w-24 shrink-0">
-                    {t("novel.download.targetLibrary", "目标媒体库")}
+                    {t("novel.download.targetLibrary", "目标应用")}
                   </span>
                   <Select
                     className="flex-1"

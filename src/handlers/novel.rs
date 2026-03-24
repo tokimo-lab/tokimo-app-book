@@ -35,7 +35,7 @@ use crate::AppState;
 #[serde(rename_all = "camelCase")]
 pub struct NovelOutput {
     pub id: String,
-    pub library_id: String,
+    pub app_id: String,
     pub title: String,
     pub author: Option<String>,
     pub overview: Option<String>,
@@ -59,7 +59,7 @@ pub struct NovelOutput {
 #[serde(rename_all = "camelCase")]
 pub struct NovelDetailOutput {
     pub id: String,
-    pub library_id: String,
+    pub app_id: String,
     pub title: String,
     pub author: Option<String>,
     pub original_title: Option<String>,
@@ -188,7 +188,7 @@ pub struct NovelBookInfoInput {
 pub struct NovelDownloadInput {
     pub provider: String,
     pub book_id: String,
-    pub library_id: String,
+    pub app_id: String,
     pub title: Option<String>,
     pub year: Option<i32>,
 }
@@ -271,7 +271,7 @@ pub async fn get_book_info(
 }
 
 /// POST /api/novel/download — SSE stream that downloads a novel, writing
-/// chapter files to the library VFS and persisting metadata in the database.
+/// chapter files to the app VFS and persisting metadata in the database.
 pub async fn download_novel(
     State(state): State<Arc<AppState>>,
     Json(input): Json<NovelDownloadInput>,
@@ -299,15 +299,15 @@ async fn do_download_novel(
     let db = state.db.clone();
     let sources = Arc::clone(&state.sources);
 
-    let library_id: Uuid = input
-        .library_id
+    let app_id: Uuid = input
+        .app_id
         .parse()
-        .map_err(|_| AppError::BadRequest("invalid library_id".into()))?;
+        .map_err(|_| AppError::BadRequest("invalid app_id".into()))?;
 
-    // Resolve library file system source
-    let lib_source = NovelRepo::get_library_source(&db, library_id)
+    // Resolve app file system source
+    let lib_source = NovelRepo::get_app_source(&db, app_id)
         .await?
-        .ok_or_else(|| AppError::BadRequest("Library has no file system sources".into()))?;
+        .ok_or_else(|| AppError::BadRequest("App has no file system sources".into()))?;
 
     let source_id = lib_source.source_id.to_string();
     let root_path = lib_source.root_path.clone();
@@ -350,7 +350,7 @@ async fn do_download_novel(
 
     let novel = novels::ActiveModel {
         id: Set(novel_id),
-        library_id: Set(library_id),
+        app_id: Set(app_id),
         title: Set(novel_title.clone()),
         author: Set(Some(book_info.author.clone())),
         overview: Set(Some(book_info.summary.clone())),
@@ -657,7 +657,7 @@ async fn do_download_novel(
     Ok(events)
 }
 
-// ── Library novel listing ───────────────────────────────────────────────────
+// ── App novel listing ───────────────────────────────────────────────────
 
 /// GET /api/media-libraries/{id}/novels
 pub async fn list_novels(
@@ -665,9 +665,9 @@ pub async fn list_novels(
     Path(id): Path<String>,
     Query(q): Query<ListNovelsQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let library_id: Uuid = id
+    let app_id: Uuid = id
         .parse()
-        .map_err(|_| AppError::BadRequest("invalid library id".into()))?;
+        .map_err(|_| AppError::BadRequest("invalid app id".into()))?;
 
     let page = q.page.unwrap_or(1);
     let page_size = q.page_size.unwrap_or(20);
@@ -676,7 +676,7 @@ pub async fn list_novels(
     let search = q.search.as_deref();
 
     let (items, total) = NovelRepo::list_novels(
-        &state.db, library_id, page, page_size, sort_by, sort_dir, search,
+        &state.db, app_id, page, page_size, sort_by, sort_dir, search,
     )
     .await?;
 
@@ -749,7 +749,7 @@ pub async fn get_novel_detail(
 
     Ok(ok(NovelDetailOutput {
         id: novel.id.to_string(),
-        library_id: novel.library_id.to_string(),
+        app_id: novel.app_id.to_string(),
         title: novel.title,
         author: novel.author,
         original_title: novel.original_title,
@@ -819,7 +819,7 @@ pub async fn get_chapter_content(
         "VIP章节，内容暂不可用".to_string()
     } else {
         match chapter.file_path.as_deref() {
-            Some(file_path) => read_chapter_file(&state, novel.library_id, file_path).await,
+            Some(file_path) => read_chapter_file(&state, novel.app_id, file_path).await,
             None => "章节内容未下载".to_string(),
         }
     };
@@ -886,7 +886,7 @@ async fn download_and_upload_cover(
         _ => "image/jpeg",
     };
 
-    let storage_key = format!("library-images/novels/{novel_id}/cover.{ext}");
+    let storage_key = format!("app-images/novels/{novel_id}/cover.{ext}");
 
     state
         .storage
@@ -916,8 +916,8 @@ fn chapter_to_output(c: &novel_chapters::Model) -> NovelChapterOutput {
     }
 }
 
-async fn read_chapter_file(state: &AppState, library_id: Uuid, file_path: &str) -> String {
-    let lib_source = match NovelRepo::get_library_source(&state.db, library_id).await {
+async fn read_chapter_file(state: &AppState, app_id: Uuid, file_path: &str) -> String {
+    let lib_source = match NovelRepo::get_app_source(&state.db, app_id).await {
         Ok(Some(ls)) => ls,
         Ok(None) => return "章节文件源不可用".to_string(),
         Err(e) => return format!("查询文件源失败: {e}"),

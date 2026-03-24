@@ -27,7 +27,7 @@ export default function NovelReaderPage() {
         chapterId,
       });
     }
-    navigate(`/dashboard/library/${id}/novel/${novelId}`, { replace: true });
+    navigate(`/dashboard/app/${id}/novel/${novelId}`, { replace: true });
   }, []);
 
   return null;

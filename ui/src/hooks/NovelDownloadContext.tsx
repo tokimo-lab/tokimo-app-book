@@ -33,7 +33,7 @@ export interface NovelDownloadTask {
   title: string;
   author: string;
   provider: string;
-  libraryId: string;
+  appId: string;
   status: NovelDownloadStatus;
   downloaded: number;
   failed: number;
@@ -58,7 +58,7 @@ interface NovelDownloadContextValue {
 export interface StartDownloadParams {
   provider: string;
   bookId: string;
-  libraryId: string;
+  appId: string;
   title: string;
   author: string;
   year?: number;
@@ -159,7 +159,7 @@ export function NovelDownloadProvider({
         title: params.title,
         author: params.author,
         provider: params.provider,
-        libraryId: params.libraryId,
+        appId: params.appId,
         status: "downloading",
         downloaded: 0,
         failed: 0,
@@ -191,7 +191,7 @@ export function NovelDownloadProvider({
         {
           provider: params.provider,
           bookId: params.bookId,
-          libraryId: params.libraryId,
+          appId: params.appId,
           title: params.title,
           year: params.year,
         },

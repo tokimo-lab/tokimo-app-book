@@ -135,7 +135,7 @@ function FavoriteButton({
   novelId: string;
 }) {
   const qc = useQueryClient();
-  const toggle = api.mediaLibrary.toggleFavorite.useMutation({
+  const toggle = api.app.toggleFavorite.useMutation({
     onSuccess: () =>
       void api.novel.getNovelDetail.invalidate(qc, { id: novelId }),
   });
@@ -189,7 +189,7 @@ export default function NovelDetailPage() {
         title: novel?.title ?? "小说",
         sourceType: "novel",
         sourceId: novelId,
-        libraryId: id,
+        appId: id,
         novelId,
         chapterId,
       });
@@ -215,7 +215,7 @@ export default function NovelDetailPage() {
       <div className="px-6 py-6">
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(`/dashboard/library/${id}`)}
+          onClick={() => navigate(`/dashboard/app/${id}`)}
         >
           返回
         </Button>
@@ -232,7 +232,7 @@ export default function NovelDetailPage() {
       <div className="mb-6">
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(`/dashboard/library/${id}`)}
+          onClick={() => navigate(`/dashboard/app/${id}`)}
         >
           返回
         </Button>

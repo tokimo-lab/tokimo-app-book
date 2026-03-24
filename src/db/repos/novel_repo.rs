@@ -4,7 +4,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::db::entities::{library_file_systems, media_files, novel_chapters, novel_volumes, novels};
+use crate::db::entities::{app_file_systems, media_files, novel_chapters, novel_volumes, novels};
 use crate::error::AppError;
 
 // ── Helpers ──
@@ -29,10 +29,10 @@ fn dir(d: &str) -> &'static str {
 pub struct NovelRepo;
 
 impl NovelRepo {
-    /// Paginated novel list for a library, with chapter/volume counts.
+    /// Paginated novel list for an app, with chapter/volume counts.
     pub async fn list_novels(
         db: &DatabaseConnection,
-        library_id: Uuid,
+        app_id: Uuid,
         page: i64,
         page_size: i64,
         sort_by: &str,
@@ -48,8 +48,8 @@ impl NovelRepo {
         };
         let order_dir = dir(sort_dir);
 
-        let mut where_clauses = vec!["n.library_id = $1".to_string()];
-        let mut params: Vec<sea_orm::Value> = vec![library_id.into()];
+        let mut where_clauses = vec!["n.app_id = $1".to_string()];
+        let mut params: Vec<sea_orm::Value> = vec![app_id.into()];
         let mut param_idx = 2u32;
 
         if let Some(s) = search {
@@ -204,13 +204,13 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get the first library_file_system source for a library.
-    pub async fn get_library_source(
+    /// Get the first app_file_system source for an app.
+    pub async fn get_app_source(
         db: &DatabaseConnection,
-        library_id: Uuid,
-    ) -> Result<Option<library_file_systems::Model>, AppError> {
-        Ok(library_file_systems::Entity::find()
-            .filter(library_file_systems::Column::LibraryId.eq(library_id))
+        app_id: Uuid,
+    ) -> Result<Option<app_file_systems::Model>, AppError> {
+        Ok(app_file_systems::Entity::find()
+            .filter(app_file_systems::Column::AppId.eq(app_id))
             .one(db)
             .await?)
     }
