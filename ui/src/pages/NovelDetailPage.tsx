@@ -17,8 +17,7 @@ import {
   Star,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useWindowManager } from "../../contexts/WindowManagerContext";
+import { useWindowNav } from "../../components/window-manager/WindowNavContext";
 import type {
   NovelChapterOutput,
   NovelVolumeOutput,
@@ -157,9 +156,9 @@ function FavoriteButton({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovelDetailPage() {
-  const { id, novelId } = useParams<{ id: string; novelId: string }>();
-  const navigate = useNavigate();
-  const { openWindow } = useWindowManager();
+  const { params, goBack, openWindow } = useWindowNav();
+  const id = params.appId as string | undefined;
+  const novelId = params.novelId as string | undefined;
 
   const detailQuery = api.novel.getNovelDetail.useQuery(
     { id: novelId! },
@@ -213,10 +212,7 @@ export default function NovelDetailPage() {
   if (!novel) {
     return (
       <div className="px-6 py-6">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(`/dashboard/app/${id}`)}
-        >
+        <Button icon={<ArrowLeftOutlined />} onClick={() => goBack()}>
           返回
         </Button>
         <div className="mt-12">
@@ -230,10 +226,7 @@ export default function NovelDetailPage() {
     <div className="min-h-screen px-4 py-6 md:px-6">
       {/* Back */}
       <div className="mb-6">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(`/dashboard/app/${id}`)}
-        >
+        <Button icon={<ArrowLeftOutlined />} onClick={() => goBack()}>
           返回
         </Button>
       </div>

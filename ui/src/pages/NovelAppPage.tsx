@@ -8,9 +8,9 @@ import {
 } from "@tokiomo/components";
 import { BookOpen, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import NovelDownloadModal from "../../components/dashboard/NovelDownloadModal";
 import NovelDownloadPopover from "../../components/dashboard/NovelDownloadPopover";
+import { useWindowNav } from "../../components/window-manager/WindowNavContext";
 import type { NovelOutput } from "../../generated/rust-api";
 import { api } from "../../generated/rust-api";
 import { useMessage } from "../../hooks";
@@ -115,8 +115,8 @@ function BookCard({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovelAppPage() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { params, navigate: navInWindow } = useWindowNav();
+  const id = params.appId as string | undefined;
   const message = useMessage();
 
   const [page, setPage] = useState(1);
@@ -252,9 +252,9 @@ export default function NovelAppPage() {
 
   const handleItemClick = useCallback(
     (item: NovelOutput) => {
-      navigate(`/dashboard/app/${id}/novel/${item.id}`);
+      navInWindow(item.title ?? "Novel", { novelId: item.id });
     },
-    [navigate, id],
+    [navInWindow],
   );
 
   // ── Sync ────────────────────────────────────────────────────────────────────
@@ -284,7 +284,7 @@ export default function NovelAppPage() {
             isNovel
             onSelect={() => {}}
             onSelectNovel={(item) =>
-              navigate(`/dashboard/app/${id}/novel/${item.id}`)
+              navInWindow(item.title ?? "Novel", { novelId: item.id })
             }
           />
         </div>
