@@ -14,7 +14,7 @@ pub fn build_novel_routes() -> Router<Arc<AppState>> {
         .route("/api/novel/book-info", post(novel::get_book_info))
         .route("/api/novel/download", post(novel::download_novel))
         .route(
-            "/api/media-libraries/novel/{id}",
+            "/api/apps/novel/{id}",
             get(novel::get_novel_detail),
         )
         .route(
