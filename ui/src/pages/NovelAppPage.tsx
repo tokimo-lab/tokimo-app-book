@@ -8,12 +8,11 @@ import {
 } from "@tokiomo/components";
 import { BookOpen, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMessage, useWindowNav } from "@/system";
 import NovelDownloadModal from "../../components/dashboard/NovelDownloadModal";
 import NovelDownloadPopover from "../../components/dashboard/NovelDownloadPopover";
-import { useWindowNav } from "../../components/window-manager/WindowNavContext";
 import type { NovelOutput } from "../../generated/rust-api";
 import { api } from "../../generated/rust-api";
-import { useMessage } from "../../hooks";
 import { buildPosterUrl } from "../../lib/poster";
 import { AppSearchBox } from "./AppSearchBox";
 

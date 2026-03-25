@@ -17,7 +17,7 @@ import {
   Star,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { useWindowNav } from "../../components/window-manager/WindowNavContext";
+import { useWindowNav } from "@/system";
 import type {
   NovelChapterOutput,
   NovelVolumeOutput,

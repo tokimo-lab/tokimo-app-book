@@ -18,7 +18,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { WindowState } from "../../contexts/WindowManagerContext";
+import type { WindowState } from "@/system";
 import { api } from "../../generated/rust-api";
 
 // ── Theme definitions ─────────────────────────────────────────────────────────

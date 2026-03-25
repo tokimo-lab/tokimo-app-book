@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useWindowManager } from "../../contexts/WindowManagerContext";
+import { useWindowManager } from "@/system";
 
 /**
  * NovelReaderPage — legacy route redirect.
