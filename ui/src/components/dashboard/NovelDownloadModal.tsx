@@ -402,7 +402,7 @@ export default function NovelDownloadModal({
                 <button
                   type="button"
                   onClick={() => setKeyword("")}
-                  className="shrink-0 cursor-pointer text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-gray-300"
+                  className="shrink-0 cursor-pointer text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-zinc-300"
                 >
                   <X size={14} />
                 </button>
@@ -420,7 +420,7 @@ export default function NovelDownloadModal({
 
           {/* Loading indicator */}
           {searching && (
-            <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-gray-500">
               <Spin size="small" />
               <span>
                 正在搜索 {providerCount} 个站点...

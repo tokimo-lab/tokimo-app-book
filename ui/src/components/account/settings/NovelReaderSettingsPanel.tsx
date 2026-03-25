@@ -32,7 +32,7 @@ export default function NovelReaderSettingsPanel({
     <div className="space-y-5">
       {/* Font size */}
       <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
           字体大小
         </div>
         <div className="flex items-center gap-3">
@@ -55,7 +55,7 @@ export default function NovelReaderSettingsPanel({
 
       {/* Font family */}
       <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
           字体
         </div>
         <div className="flex gap-2">
@@ -67,7 +67,7 @@ export default function NovelReaderSettingsPanel({
               className={`flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors cursor-pointer ${
                 fontFamily === f.key
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-medium"
-                  : "border-black/[0.1] dark:border-white/[0.12] text-gray-600 dark:text-gray-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  : "border-black/[0.1] dark:border-white/[0.12] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               }`}
             >
               {f.label}
@@ -78,7 +78,7 @@ export default function NovelReaderSettingsPanel({
 
       {/* Font weight */}
       <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
           字重
         </div>
         <div className="flex gap-2">
@@ -90,7 +90,7 @@ export default function NovelReaderSettingsPanel({
               className={`flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors cursor-pointer ${
                 fontWeight === w
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-medium"
-                  : "border-black/[0.1] dark:border-white/[0.12] text-gray-600 dark:text-gray-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  : "border-black/[0.1] dark:border-white/[0.12] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               }`}
               style={{ fontWeight: w }}
             >
@@ -102,7 +102,7 @@ export default function NovelReaderSettingsPanel({
 
       {/* Theme */}
       <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
           阅读器背景
         </div>
         <div className="flex items-center gap-3">

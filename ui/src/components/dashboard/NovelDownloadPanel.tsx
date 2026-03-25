@@ -60,7 +60,7 @@ const STATUS_CONFIG: Record<
   cancelled: {
     icon: <Ban size={14} />,
     label: "已取消",
-    color: "text-gray-400",
+    color: "text-zinc-600 dark:text-zinc-400",
   },
 };
 
@@ -123,10 +123,10 @@ function NovelDownloadLogModal({
     >
       {/* Summary bar */}
       <div className="flex items-center gap-4 px-4 py-2 border-b border-gray-800 text-xs">
-        <span className="text-gray-400">
+        <span className="text-zinc-600 dark:text-zinc-400">
           源: <span className="text-gray-200">{task.provider}</span>
         </span>
-        <span className="text-gray-400">
+        <span className="text-zinc-600 dark:text-zinc-400">
           进度:{" "}
           <span className="text-gray-200">
             {task.downloaded}/{task.total}
@@ -141,7 +141,7 @@ function NovelDownloadLogModal({
         {task.failed > 0 && (
           <span className="text-red-400">失败: {task.failed}</span>
         )}
-        <span className="text-gray-400">
+        <span className="text-zinc-600 dark:text-zinc-400">
           耗时: {formatElapsed(Date.now() - task.startedAt)}
         </span>
       </div>
@@ -166,14 +166,15 @@ function NovelDownloadLogModal({
 }
 
 function LogLine({ log }: { log: NovelDownloadLog }) {
-  const phaseColor = PHASE_COLORS[log.phase] ?? "text-gray-400";
+  const phaseColor =
+    PHASE_COLORS[log.phase] ?? "text-zinc-600 dark:text-zinc-400";
   return (
     <div className="flex gap-2 hover:bg-white/[0.03]">
       <span className="text-gray-600 shrink-0">{formatTime(log.time)}</span>
       <span className={`shrink-0 w-16 ${phaseColor}`}>
         [{log.phase.toUpperCase()}]
       </span>
-      <span className="text-gray-300">{log.message}</span>
+      <span className="text-zinc-700 dark:text-zinc-300">{log.message}</span>
     </div>
   );
 }
@@ -212,7 +213,7 @@ function DownloadTaskItem({
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className="flex-shrink-0 w-9 h-12 rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-          <BookOpen size={20} className="text-gray-400" />
+          <BookOpen size={20} className="text-zinc-600 dark:text-zinc-400" />
         </div>
 
         {/* Content */}
@@ -256,7 +257,7 @@ function DownloadTaskItem({
                   }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500">
+              <div className="flex items-center justify-between text-[10px] text-zinc-600 dark:text-gray-500">
                 <span>
                   {task.downloaded}/{task.total} 章
                   {task.rescued > 0 && (
@@ -291,7 +292,7 @@ function DownloadTaskItem({
           <button
             type="button"
             onClick={onViewLog}
-            className="p-1 rounded text-gray-400 hover:text-[var(--accent)] transition-colors"
+            className="p-1 rounded text-zinc-600 dark:text-zinc-400 hover:text-[var(--accent)] transition-colors"
             title="查看日志"
           >
             <ScrollText size={14} />
@@ -301,7 +302,7 @@ function DownloadTaskItem({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-1 rounded text-zinc-600 dark:text-zinc-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
             title={expanded ? "收起" : "展开日志"}
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -312,7 +313,7 @@ function DownloadTaskItem({
             <button
               type="button"
               onClick={onCancel}
-              className="p-1 rounded text-gray-400 hover:text-red-500 transition-colors"
+              className="p-1 rounded text-zinc-600 dark:text-zinc-400 hover:text-red-500 transition-colors"
               title="取消"
             >
               <X size={14} />
@@ -329,7 +330,7 @@ function DownloadTaskItem({
             >
               <button
                 type="button"
-                className="p-1 rounded text-gray-400 hover:text-red-500 transition-colors"
+                className="p-1 rounded text-zinc-600 dark:text-zinc-400 hover:text-red-500 transition-colors"
                 title="移除"
               >
                 <Trash2 size={14} />
@@ -347,7 +348,11 @@ function DownloadTaskItem({
               <span className="text-gray-600 dark:text-gray-600 shrink-0">
                 {formatTime(log.time)}
               </span>
-              <span className={PHASE_COLORS[log.phase] ?? "text-gray-400"}>
+              <span
+                className={
+                  PHASE_COLORS[log.phase] ?? "text-zinc-600 dark:text-zinc-400"
+                }
+              >
                 [{log.phase}]
               </span>
               <span className="truncate">{log.message}</span>
@@ -389,7 +394,7 @@ export default function NovelDownloadPanel() {
 
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-12 text-zinc-600 dark:text-zinc-400">
         <div className="text-4xl mb-3">📚</div>
         <p className="text-sm">暂无下载任务</p>
       </div>
@@ -416,7 +421,7 @@ export default function NovelDownloadPanel() {
           <button
             type="button"
             onClick={clearCompleted}
-            className="text-[10px] text-gray-400 hover:text-[var(--accent)] transition-colors"
+            className="text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-[var(--accent)] transition-colors"
           >
             清除已完成
           </button>
