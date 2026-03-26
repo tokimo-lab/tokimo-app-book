@@ -1,20 +1,19 @@
 import {
-  Button,
+  Checkbox,
   Empty,
   Modal,
   PosterCard,
   Spin,
-  SyncOutlined,
+  Tag,
 } from "@tokiomo/components";
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, Download, FolderSync, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMessage, useWindowNav } from "@/system";
+import type { MenuBarConfig } from "@/system";
+import { useMenuBar, useMessage, useWindowNav } from "@/system";
 import NovelDownloadModal from "../../components/dashboard/NovelDownloadModal";
-import NovelDownloadPopover from "../../components/dashboard/NovelDownloadPopover";
 import type { NovelOutput } from "../../generated/rust-api";
 import { api } from "../../generated/rust-api";
 import { buildPosterUrl } from "../../lib/poster";
-import { AppSearchBox } from "./AppSearchBox";
 
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;
@@ -121,11 +120,10 @@ export default function NovelAppPage() {
   const [page, setPage] = useState(1);
   const [allItems, setAllItems] = useState<NovelOutput[]>([]);
   const [sortValue, setSortValue] = useState<SortValue>("addedAt");
-  const [searchText, setSearchText] = useState("");
-  const [searchInput, setSearchInput] = useState("");
   const lastAppendedPageRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [syncClearData, setSyncClearData] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
 
   // ── Grid layout ─────────────────────────────────────────────────────────────
@@ -188,7 +186,6 @@ export default function NovelAppPage() {
       pageSize,
       sortBy: sortParams.sortBy,
       sortDir: sortParams.sortDir,
-      search: searchText || undefined,
     },
     { enabled: !!id },
   );
@@ -211,43 +208,37 @@ export default function NovelAppPage() {
     isLoadingMoreRef.current = false;
   }, [novelsQuery.data]);
 
-  // Infinite scroll
+  // Infinite scroll (nearest scrollable ancestor — matches MediaAppPage)
   useEffect(() => {
-    const handleScroll = () => {
+    let container: HTMLElement | null =
+      gridWrapperRef.current?.parentElement ?? null;
+    while (container) {
+      const ov = getComputedStyle(container).overflowY;
+      if (ov === "auto" || ov === "scroll") break;
+      container = container.parentElement;
+    }
+    if (!container) return;
+
+    const check = () => {
       if (isLoadingMoreRef.current || !hasMore || novelsQuery.isFetching)
         return;
-      const scrollBottom =
-        document.documentElement.scrollHeight -
-        window.scrollY -
-        window.innerHeight;
-      if (scrollBottom < 600) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollTop + clientHeight >= scrollHeight - 600) {
         isLoadingMoreRef.current = true;
         setPage((p) => p + 1);
       }
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    container.addEventListener("scroll", check, { passive: true });
+    check();
+    return () => container.removeEventListener("scroll", check);
   }, [hasMore, novelsQuery.isFetching]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-  const handleSortChange = useCallback(
-    (v: SortValue) => {
-      setSortValue(v);
-      resetPagination();
-    },
-    [resetPagination],
-  );
-
-  const handleSearch = useCallback(() => {
-    setSearchText(searchInput.trim());
+  const handleSortChange = (v: SortValue) => {
+    setSortValue(v);
     resetPagination();
-  }, [searchInput, resetPagination]);
-
-  const handleSearchClear = useCallback(() => {
-    setSearchInput("");
-    setSearchText("");
-    resetPagination();
-  }, [resetPagination]);
+  };
 
   const handleItemClick = useCallback(
     (item: NovelOutput) => {
@@ -259,176 +250,168 @@ export default function NovelAppPage() {
   // ── Sync ────────────────────────────────────────────────────────────────────
   const syncMut = api.app.sync.useMutation({
     onSuccess: () => {
-      message.success({ content: "同步已开始" });
+      message.success("同步已开始");
       setSyncModalOpen(false);
     },
-    onError: () => {
-      message.error({ content: "同步失败" });
+    onError: (error) => {
+      message.error(error.message || "同步失败");
     },
   });
 
-  const handleSync = useCallback(() => {
-    if (!id) return;
-    syncMut.mutate({ id });
-  }, [id, syncMut]);
+  // ── Menu Bar (macOS-style structured config) ──────────────────────────────
+  const menuBarConfig: MenuBarConfig | null = useMemo(() => {
+    if (!id) return null;
+
+    return {
+      menus: [
+        {
+          key: "actions",
+          label: "操作",
+          items: [
+            {
+              key: "refresh",
+              label: "刷新",
+              icon: <RefreshCw size={14} />,
+              onClick: () => void novelsQuery.refetch(),
+            },
+            {
+              key: "download-novel",
+              label: "下载小说",
+              icon: <Download size={14} />,
+              onClick: () => setDownloadOpen(true),
+            },
+            { type: "divider" as const },
+            {
+              key: "sync",
+              label: "同步资料库",
+              icon: <FolderSync size={14} />,
+              disabled: syncMut.isPending,
+              onClick: () => {
+                setSyncClearData(false);
+                setSyncModalOpen(true);
+              },
+            },
+          ],
+        },
+      ],
+      search: {
+        appId: id,
+        searchType: "novel" as const,
+        onSelect: (item) =>
+          navInWindow(item.title ?? "Novel", { novelId: item.id }),
+      },
+    };
+  }, [id, novelsQuery.refetch, syncMut.isPending, navInWindow]);
+
+  useMenuBar(menuBarConfig);
+
+  if (!id) return null;
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6">
-      {/* Global search box — matches video library UX */}
-      {id && (
-        <div className="mb-6">
-          <AppSearchBox
-            appId={id}
-            isTv={false}
-            isNovel
-            onSelect={() => {}}
-            onSelectNovel={(item) =>
-              navInWindow(item.title ?? "Novel", { novelId: item.id })
-            }
-          />
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{library?.name ?? "小说库"}</h1>
-          {total > 0 && (
-            <p className="mt-1 text-sm text-gray-500">共 {total} 本</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <NovelDownloadPopover />
-          <Button
-            variant="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setDownloadOpen(true)}
-          >
-            下载小说
-          </Button>
-          <Button
-            icon={<SyncOutlined />}
-            onClick={() => setSyncModalOpen(true)}
-          >
-            同步
-          </Button>
-        </div>
-      </div>
-
-      {/* Toolbar: sort + search */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-            排序
-          </span>
-          {SORT_OPTIONS.map((opt) => (
-            <button
-              type="button"
-              key={opt.value}
-              onClick={() => handleSortChange(opt.value)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                sortValue === opt.value
-                  ? "bg-[var(--accent)] text-white"
-                  : "bg-black/[0.05] text-gray-600 hover:bg-black/[0.1] dark:bg-white/[0.08] dark:text-zinc-300 dark:hover:bg-white/[0.12]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="搜索标题/作者…"
-              className="h-8 w-48 rounded-md border border-[var(--glass-border)] bg-transparent pl-8 pr-3 text-sm outline-none focus:border-[var(--accent)]"
-            />
-            <Search
-              size={14}
-              className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-600 dark:text-zinc-400"
-            />
-          </div>
-          {searchText && (
-            <button
-              type="button"
-              onClick={handleSearchClear}
-              className="text-xs text-zinc-600 dark:text-zinc-400 hover:text-gray-600"
-            >
-              清除
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div ref={gridWrapperRef}>
-        {novelsQuery.isLoading && allItems.length === 0 ? (
-          <div className="flex justify-center py-20">
-            <Spin />
-          </div>
-        ) : allItems.length === 0 ? (
-          <Empty description={searchText ? "未找到匹配的小说" : "暂无小说"} />
-        ) : (
-          <>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                gap: CARD_GAP,
-              }}
-            >
-              {allItems.map((item) => (
-                <BookCard
-                  key={item.id}
-                  item={item}
-                  onClick={() => handleItemClick(item)}
-                />
-              ))}
-            </div>
-            <div className="mt-2 flex justify-center py-3">
-              {novelsQuery.isFetching && <Spin />}
-              {!hasMore && total > 0 && !novelsQuery.isFetching && (
-                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                  已加载全部 {total} 本
-                </p>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Sync Modal */}
+    <div className="space-y-4">
       <Modal
         open={syncModalOpen}
-        onCancel={() => setSyncModalOpen(false)}
         title="同步小说库"
-        footer={null}
+        okText="开始同步"
+        cancelText="取消"
+        confirmLoading={syncMut.isPending}
+        onCancel={() => setSyncModalOpen(false)}
+        onOk={async () => {
+          try {
+            await syncMut.mutateAsync({ id: id!, clearData: syncClearData });
+          } finally {
+            setSyncModalOpen(false);
+          }
+        }}
       >
-        <p className="mb-4 text-sm text-gray-600 dark:text-zinc-400">
-          将扫描应用目录并更新小说元数据。
+        <Checkbox
+          checked={syncClearData}
+          onChange={(e) => setSyncClearData(e.target.checked)}
+        >
+          清空数据重新同步
+        </Checkbox>
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          勾选后将删除应用中所有已有条目并重新完整同步，适合修复数据异常。
         </p>
-        <div className="flex justify-end gap-2">
-          <Button onClick={() => setSyncModalOpen(false)}>取消</Button>
-          <Button
-            variant="primary"
-            loading={syncMut.isPending}
-            onClick={handleSync}
-          >
-            开始同步
-          </Button>
-        </div>
       </Modal>
+
+      {/* Sort + Content */}
+      <section className="rounded-xl border border-[var(--glass-border)] bg-black/[0.02] p-4 dark:bg-white/[0.03]">
+        {/* Header */}
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <h5 className="text-base font-semibold text-gray-800 dark:text-gray-100">
+              全部
+            </h5>
+            <Tag>{total}</Tag>
+          </div>
+
+          {/* 排序 */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-0.5 text-xs text-zinc-600 dark:text-gray-500">
+              排序
+            </span>
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSortChange(opt.value)}
+                className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  sortValue === opt.value
+                    ? "bg-primary text-white"
+                    : "bg-black/[0.05] text-gray-600 hover:bg-black/[0.1] dark:bg-white/[0.08] dark:text-zinc-300 dark:hover:bg-white/[0.14]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content — wrapper always mounted for ResizeObserver */}
+        <div ref={gridWrapperRef}>
+          {novelsQuery.isLoading && allItems.length === 0 ? (
+            <div className="flex h-64 items-center justify-center">
+              <Spin />
+            </div>
+          ) : allItems.length === 0 ? (
+            <Empty description="暂无小说" />
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  gap: CARD_GAP,
+                }}
+              >
+                {allItems.map((item) => (
+                  <BookCard
+                    key={item.id}
+                    item={item}
+                    onClick={() => handleItemClick(item)}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-2 flex justify-center py-3">
+                {novelsQuery.isFetching && <Spin />}
+                {!hasMore && total > 0 && !novelsQuery.isFetching && (
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    已加载全部 {total} 本
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
 
       {/* Download Modal */}
       <NovelDownloadModal
         open={downloadOpen}
         onClose={() => setDownloadOpen(false)}
-        appId={id ?? ""}
+        appId={id}
         appName={library?.name ?? "小说库"}
       />
     </div>

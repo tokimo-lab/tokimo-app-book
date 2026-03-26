@@ -16,8 +16,8 @@ import {
   Heart,
   Star,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
-import { useWindowNav } from "@/system";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useBackgroundArt, useWindowNav } from "@/system";
 import type {
   NovelChapterOutput,
   NovelVolumeOutput,
@@ -173,6 +173,16 @@ export default function NovelDetailPage() {
   );
 
   const novel = detailQuery.data;
+
+  const { setBackgroundArt } = useBackgroundArt();
+  useEffect(() => {
+    if (novel?.coverPath) {
+      setBackgroundArt(resolveStoragePath(novel.coverPath));
+    }
+    return () => {
+      setBackgroundArt(null);
+    };
+  }, [novel?.coverPath, setBackgroundArt]);
 
   // Find the first chapter for "Start Reading"
   const firstChapterId = useMemo(() => {
