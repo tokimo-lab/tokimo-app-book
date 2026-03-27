@@ -3,6 +3,7 @@ import {
   BookOpen,
   ChevronRight,
   Download,
+  Globe,
   Search,
   User,
   X,
@@ -153,7 +154,8 @@ export default function NovelDownloadModal({
   const abortRef = useRef<AbortController | null>(null);
 
   // Detail state
-  const [selectedResult, setSelectedResult] =
+  const [selectedBook, setSelectedBook] = useState<RankedBook | null>(null);
+  const [selectedSource, setSelectedSource] =
     useState<NovelSearchResultOutput | null>(null);
   const [bookInfo, setBookInfo] = useState<BookInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
@@ -177,7 +179,8 @@ export default function NovelDownloadModal({
     setKeyword("");
     setResults([]);
     setSearching(false);
-    setSelectedResult(null);
+    setSelectedBook(null);
+    setSelectedSource(null);
     setBookInfo(null);
     setLoadingInfo(false);
     setYearInput("");
@@ -199,7 +202,8 @@ export default function NovelDownloadModal({
 
     setResults([]);
     setSearching(true);
-    setSelectedResult(null);
+    setSelectedBook(null);
+    setSelectedSource(null);
     setBookInfo(null);
     setProviderCount(providersQuery.data?.length ?? 0);
 
@@ -227,15 +231,13 @@ export default function NovelDownloadModal({
   }, [keyword, providersQuery.data?.length]);
 
   // ── View Details ──────────────────────────────────────────────────────────
-  const handleViewDetails = useCallback(
-    (item: NovelSearchResultOutput) => {
-      setSelectedResult(item);
+  const fetchBookInfo = useCallback(
+    (source: NovelSearchResultOutput) => {
       setBookInfo(null);
-      setYearInput("");
       setLoadingInfo(true);
 
       bookInfoMutation.mutate(
-        { provider: item.site, bookId: item.bookId },
+        { provider: source.site, bookId: source.bookId },
         {
           onSuccess: (data) => {
             setBookInfo(data as unknown as BookInfo);
@@ -248,28 +250,47 @@ export default function NovelDownloadModal({
     [bookInfoMutation],
   );
 
+  const handleViewDetails = useCallback(
+    (book: RankedBook) => {
+      setSelectedBook(book);
+      setSelectedSource(book.best);
+      setYearInput("");
+      fetchBookInfo(book.best);
+    },
+    [fetchBookInfo],
+  );
+
+  const handleSourceChange = useCallback(
+    (source: NovelSearchResultOutput) => {
+      setSelectedSource(source);
+      fetchBookInfo(source);
+    },
+    [fetchBookInfo],
+  );
+
   const handleBackToResults = useCallback(() => {
-    setSelectedResult(null);
+    setSelectedBook(null);
+    setSelectedSource(null);
     setBookInfo(null);
   }, []);
 
   // ── Download ──────────────────────────────────────────────────────────────
   const handleDownload = useCallback(() => {
-    if (!selectedResult || !appId) return;
+    if (!selectedSource || !appId) return;
 
     startDownload({
-      provider: selectedResult.site,
-      bookId: selectedResult.bookId,
+      provider: selectedSource.site,
+      bookId: selectedSource.bookId,
       appId,
-      title: bookInfo?.bookName || selectedResult.title,
-      author: bookInfo?.author || selectedResult.author,
+      title: bookInfo?.bookName || selectedSource.title,
+      author: bookInfo?.author || selectedSource.author,
       year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
       totalChapters: bookInfo?.totalChapters,
     });
 
     // Close modal — progress tracked in popover
     handleClose();
-  }, [selectedResult, appId, bookInfo, yearInput, startDownload, handleClose]);
+  }, [selectedSource, appId, bookInfo, yearInput, startDownload, handleClose]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -286,7 +307,7 @@ export default function NovelDownloadModal({
       footer={null}
       width={640}
     >
-      {selectedResult ? (
+      {selectedBook && selectedSource ? (
         /* ── Detail view ────────────────────────────────────────────────── */
         <div className="space-y-4">
           {/* Back button */}
@@ -318,6 +339,12 @@ export default function NovelDownloadModal({
                   </span>
                   <span>{bookInfo.author || "—"}</span>
                 </div>
+                <div className="flex gap-2">
+                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                    🌐 来源
+                  </span>
+                  <Tag className="!text-[10px]">{selectedSource.site}</Tag>
+                </div>
                 {bookInfo.summary && (
                   <div className="flex gap-2">
                     <span className="w-16 shrink-0 text-[var(--text-muted)]">
@@ -345,6 +372,57 @@ export default function NovelDownloadModal({
 
               {/* Download config + button */}
               <div className="space-y-3 border-t border-[var(--glass-border)] pt-2">
+                {/* Source selector */}
+                {selectedBook.sources.length > 1 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                      <Globe size={14} />
+                      <span>下载源</span>
+                      <Tag className="!text-[10px]">
+                        {selectedBook.sources.length} 个可用
+                      </Tag>
+                    </div>
+                    <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-[var(--glass-border)] p-1">
+                      {selectedBook.sources.map((source) => {
+                        const isActive =
+                          source.site === selectedSource.site &&
+                          source.bookId === selectedSource.bookId;
+                        return (
+                          <button
+                            type="button"
+                            key={`${source.site}-${source.bookId}`}
+                            onClick={() => {
+                              if (!isActive) handleSourceChange(source);
+                            }}
+                            className={`flex w-full items-center justify-between rounded px-3 py-2 text-left text-xs transition-colors ${
+                              isActive
+                                ? "bg-[var(--accent)]/10 text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
+                                : "hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Tag
+                                className={`!text-[10px] shrink-0 ${isActive ? "!bg-[var(--accent)]/20 !text-[var(--accent)]" : ""}`}
+                              >
+                                {source.site}
+                              </Tag>
+                              {source.latestChapter && (
+                                <span className="truncate text-[var(--text-muted)]">
+                                  {source.latestChapter}
+                                </span>
+                              )}
+                            </div>
+                            {source.wordCount && (
+                              <span className="shrink-0 ml-2 text-[var(--text-muted)]">
+                                {source.wordCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
                     目标应用
@@ -467,7 +545,7 @@ export default function NovelDownloadModal({
                   variant="primary"
                   size="small"
                   icon={<Download size={14} />}
-                  onClick={() => handleViewDetails(rankedBooks[0].best)}
+                  onClick={() => handleViewDetails(rankedBooks[0])}
                 >
                   下载
                 </Button>
@@ -530,7 +608,7 @@ export default function NovelDownloadModal({
                         size="small"
                         variant="text"
                         icon={<ChevronRight size={14} />}
-                        onClick={() => handleViewDetails(book.best)}
+                        onClick={() => handleViewDetails(book)}
                       >
                         查看详情
                       </Button>
