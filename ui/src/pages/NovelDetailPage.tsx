@@ -293,6 +293,13 @@ export default function NovelDetailPage() {
             )}
             {novel.publisher && <Tag>{novel.publisher}</Tag>}
             {novel.sourceProvider && <Tag>来源: {novel.sourceProvider}</Tag>}
+            {novel.scrapedAt ? (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-500">
+                ✨ 已刮削
+              </span>
+            ) : (
+              <span className="text-xs text-orange-400">未刮削</span>
+            )}
           </div>
 
           {/* Stats */}

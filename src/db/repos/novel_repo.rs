@@ -66,11 +66,8 @@ impl NovelRepo {
 
         // Count
         let count_sql = format!("SELECT COUNT(*) as cnt FROM novels n WHERE {where_sql}");
-        let count_stmt = Statement::from_sql_and_values(
-            DatabaseBackend::Postgres,
-            &count_sql,
-            params.clone(),
-        );
+        let count_stmt =
+            Statement::from_sql_and_values(DatabaseBackend::Postgres, &count_sql, params.clone());
         let total: i64 = db
             .query_one_raw(count_stmt)
             .await?
@@ -82,7 +79,8 @@ impl NovelRepo {
         let offset_param = param_idx + 1;
         let items_sql = format!(
             r#"SELECT n.id, n.title, n.author, n.overview, n.cover_path, n.serial_status,
-                      n.word_count, n.year, n.source_provider, n.is_favorite, n.created_at,
+                      n.word_count, n.year, n.source_provider, n.is_favorite,
+                      n.scraped_at::text as scraped_at, n.created_at,
                       (SELECT COUNT(*) FROM novel_chapters nc WHERE nc.novel_id = n.id) as chapter_count,
                       (SELECT COUNT(*) FROM novel_volumes nv WHERE nv.novel_id = n.id) as volume_count
                FROM novels n
@@ -93,11 +91,8 @@ impl NovelRepo {
         params.push(page_size.into());
         params.push(((page - 1) * page_size).into());
 
-        let items_stmt = Statement::from_sql_and_values(
-            DatabaseBackend::Postgres,
-            &items_sql,
-            params,
-        );
+        let items_stmt =
+            Statement::from_sql_and_values(DatabaseBackend::Postgres, &items_sql, params);
         let rows = db.query_all_raw(items_stmt).await?;
 
         let items: Vec<serde_json::Value> = rows
@@ -116,6 +111,7 @@ impl NovelRepo {
                     "isFavorite": col::<bool>(r, "is_favorite").unwrap_or(false),
                     "chapterCount": col::<i64>(r, "chapter_count").unwrap_or(0),
                     "volumeCount": col::<i64>(r, "volume_count").unwrap_or(0),
+                    "scrapedAt": opt::<String>(r, "scraped_at"),
                     "createdAt": opt::<chrono::DateTime<chrono::FixedOffset>>(r, "created_at")
                         .map(|d| d.to_rfc3339()),
                 })

@@ -6,12 +6,12 @@ use async_stream::stream;
 use axum::{
     extract::{Path, Query, State},
     response::{
-        sse::{Event, KeepAlive, Sse},
         Json,
+        sse::{Event, KeepAlive, Sse},
     },
 };
-use futures_util::stream::Stream;
 use futures_util::StreamExt;
+use futures_util::stream::Stream;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
@@ -21,12 +21,12 @@ use uuid::Uuid;
 use bytes::Bytes;
 use tracing::info;
 
+use crate::AppState;
 use crate::db::entities::{novel_chapters, novel_volumes, novels};
 use crate::db::repos::novel_repo::NovelRepo;
 use crate::error::AppError;
-use crate::handlers::{ok, ApiResponse};
+use crate::handlers::{ApiResponse, ok};
 use crate::services::storage::UploadOptions;
-use crate::AppState;
 
 // ── DTOs (ts-rs exported) ───────────────────────────────────────────────────
 
@@ -51,6 +51,7 @@ pub struct NovelOutput {
     pub chapter_count: Option<i64>,
     #[ts(type = "number | null")]
     pub volume_count: Option<i64>,
+    pub scraped_at: Option<String>,
     pub created_at: Option<String>,
 }
 
@@ -86,6 +87,7 @@ pub struct NovelDetailOutput {
     pub files: Vec<NovelFileOutput>,
     #[ts(type = "number")]
     pub total_chapters: usize,
+    pub scraped_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
@@ -771,6 +773,7 @@ pub async fn get_novel_detail(
         orphan_chapters,
         files: files_output,
         total_chapters,
+        scraped_at: novel.scraped_at.map(|d| d.to_rfc3339()),
         created_at: novel.created_at.map(|d| d.to_rfc3339()),
         updated_at: novel.updated_at.map(|d| d.to_rfc3339()),
     }))
@@ -997,11 +1000,7 @@ fn normalize_for_matching(s: &str) -> String {
     // Strip "第...章 " prefix so "第123章 少年" → "少年"
     let body = if let Some(pos) = s.find('章') {
         let after = s[pos + '章'.len_utf8()..].trim();
-        if after.is_empty() {
-            s
-        } else {
-            after
-        }
+        if after.is_empty() { s } else { after }
     } else {
         s
     };

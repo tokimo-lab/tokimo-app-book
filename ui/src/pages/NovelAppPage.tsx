@@ -92,6 +92,12 @@ function BookCard({
               {item.chapterCount}章
             </span>
           )}
+          {!item.scrapedAt && (
+            <span
+              className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full bg-orange-400 ring-1 ring-black/30"
+              title="未刮削"
+            />
+          )}
         </>
       }
       onClick={onClick}
