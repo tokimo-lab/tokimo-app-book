@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useWindowManager } from "@/system";
+import { useWindowActions } from "@/system";
 
 /**
  * NovelReaderPage — legacy route redirect.
@@ -15,7 +15,7 @@ export default function NovelReaderPage() {
     chapterId?: string;
   }>();
   const navigate = useNavigate();
-  const { openWindow } = useWindowManager();
+  const { openWindow } = useWindowActions();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {

@@ -18,7 +18,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { WindowState } from "@/system";
+import { useWindowActive, type WindowState } from "@/system";
 import { api } from "../../generated/rust-api";
 
 // ── Theme definitions ─────────────────────────────────────────────────────────
@@ -331,15 +331,17 @@ export function NovelReaderContent({ win }: NovelReaderContentProps) {
     if (chapter?.nextChapterId) setCurrentChapterId(chapter.nextChapterId);
   }, [chapter?.nextChapterId]);
 
-  // Keyboard navigation
+  // Keyboard navigation (only when this window is active)
+  const windowActive = useWindowActive();
   useEffect(() => {
+    if (!windowActive) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") handlePrev();
       if (e.key === "ArrowRight") handleNext();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handlePrev, handleNext]);
+  }, [handlePrev, handleNext, windowActive]);
 
   // Loading
   if (contentQuery.isLoading) {
