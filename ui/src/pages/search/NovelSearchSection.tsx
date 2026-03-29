@@ -1,4 +1,12 @@
-import { Button, Empty, Modal, Select, Spin, Tag } from "@tokiomo/components";
+import {
+  Button,
+  Empty,
+  Input,
+  Modal,
+  Select,
+  Spin,
+  Tag,
+} from "@tokiomo/components";
 import {
   BookOpen,
   ChevronRight,
@@ -369,27 +377,28 @@ export default function NovelSearchSection() {
 
       {/* Search bar */}
       <div className="flex gap-2 mb-4">
-        <div className="flex flex-1 items-center gap-2 rounded-md border border-black/[0.08] dark:border-white/[0.1] bg-white/70 dark:bg-white/[0.03] px-3 h-10 transition-colors focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]">
-          <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
-          <input
-            className="w-full min-w-0 bg-transparent outline-none placeholder:text-[var(--text-muted)] text-sm"
-            placeholder={t("novel.search.placeholder", "输入小说名称或作者...")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSearch();
-            }}
-          />
-          {keyword && (
-            <button
-              type="button"
-              onClick={() => setKeyword("")}
-              className="cursor-pointer shrink-0 text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-zinc-300"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
+        <Input
+          prefix={<Search size={16} />}
+          suffix={
+            keyword ? (
+              <button
+                type="button"
+                onClick={() => setKeyword("")}
+                className="cursor-pointer text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-zinc-300"
+              >
+                <X size={14} />
+              </button>
+            ) : undefined
+          }
+          size="large"
+          className="flex-1"
+          placeholder={t("novel.search.placeholder", "输入小说名称或作者...")}
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSearch();
+          }}
+        />
         <Button
           variant="primary"
           icon={<Search size={16} />}
@@ -628,8 +637,8 @@ export default function NovelSearchSection() {
                   <span className="text-sm text-[var(--text-muted)] w-24 shrink-0">
                     {t("novel.download.year", "年份 (可选)")}
                   </span>
-                  <input
-                    className="flex-1 rounded-md border border-black/[0.08] dark:border-white/[0.1] bg-white/70 dark:bg-white/[0.03] px-3 h-9 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                  <Input
+                    className="flex-1"
                     placeholder="2005"
                     value={yearInput}
                     onChange={(e) => setYearInput(e.target.value)}
