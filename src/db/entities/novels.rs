@@ -49,8 +49,6 @@ pub struct Model {
     pub douban_id: Option<String>,
     #[sea_orm(column_type = "Text", nullable, unique)]
     pub bangumi_id: Option<String>,
-    #[sea_orm(column_type = "Text", nullable, unique)]
-    pub qidian_id: Option<String>,
     #[sea_orm(column_type = "Double", nullable)]
     pub douban_rating: Option<f64>,
     #[sea_orm(column_type = "Double", nullable)]
@@ -62,6 +60,8 @@ pub struct Model {
     pub scraped_at: Option<DateTimeWithTimeZone>,
     pub created_at: Option<DateTimeWithTimeZone>,
     pub updated_at: Option<DateTimeWithTimeZone>,
+    #[sea_orm(column_type = "Text", nullable, unique)]
+    pub qidian_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
