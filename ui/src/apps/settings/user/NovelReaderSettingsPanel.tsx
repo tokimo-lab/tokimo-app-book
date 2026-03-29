@@ -5,7 +5,7 @@
  * so users can configure defaults from the settings page.
  */
 
-import type { AppSettingsRenderProps } from "../../../lib/settings-defs";
+import type { AppSettingsRenderProps } from "@/lib/settings-defs";
 
 const THEME_SWATCHES = [
   { key: "light", bg: "#fefefe", label: "白色" },

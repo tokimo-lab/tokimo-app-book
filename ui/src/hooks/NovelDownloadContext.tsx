@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { rustUrl } from "../lib/rust-api-runtime";
+import { rustUrl } from "@/lib/rust-api-runtime";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 

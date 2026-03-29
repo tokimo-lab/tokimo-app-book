@@ -8,12 +8,12 @@ import {
 } from "@tokiomo/components";
 import { BookOpen, Download, FolderSync, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import NovelDownloadModal from "@/apps/novel/components/NovelDownloadModal";
+import type { NovelOutput } from "@/generated/rust-api";
+import { api } from "@/generated/rust-api";
+import { buildPosterUrl } from "@/lib/poster";
 import type { MenuBarConfig } from "@/system";
 import { useMenuBar, useMessage, useWindowNav } from "@/system";
-import NovelDownloadModal from "../../components/dashboard/NovelDownloadModal";
-import type { NovelOutput } from "../../generated/rust-api";
-import { api } from "../../generated/rust-api";
-import { buildPosterUrl } from "../../lib/poster";
 
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;

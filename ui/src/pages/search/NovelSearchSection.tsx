@@ -17,9 +17,9 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "../../../generated/rust-api";
-import type { NovelSearchResultOutput } from "../../../generated/rust-types";
-import { rustUrl } from "../../../lib/rust-api-runtime";
+import { api } from "@/generated/rust-api";
+import type { NovelSearchResultOutput } from "@/generated/rust-types";
+import { rustUrl } from "@/lib/rust-api-runtime";
 
 // ── SSE helpers ──────────────────────────────────────────────────────────────
 

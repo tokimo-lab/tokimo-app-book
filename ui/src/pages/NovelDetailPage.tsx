@@ -17,14 +17,17 @@ import {
   Star,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useBackgroundArt, useWindowNav } from "@/system";
+import {
+  formatFileSize,
+  SectionTitle,
+} from "@/apps/media/pages/media-detail-shared";
 import type {
   NovelChapterOutput,
   NovelVolumeOutput,
-} from "../../generated/rust-api";
-import { api } from "../../generated/rust-api";
-import { resolveStoragePath } from "../../lib/storage-url";
-import { formatFileSize, SectionTitle } from "./media-detail-shared";
+} from "@/generated/rust-api";
+import { api } from "@/generated/rust-api";
+import { resolveStoragePath } from "@/lib/storage-url";
+import { useBackgroundArt, useWindowNav } from "@/system";
 
 function formatWordCount(count: number | null | undefined): string {
   if (count == null) return "";
