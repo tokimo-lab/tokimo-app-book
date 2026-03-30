@@ -1,5 +1,5 @@
 /**
- * NovelReaderContent — novel chapter reader inside a floating window.
+ * NovelViewer — novel chapter reader inside a floating window.
  *
  * Displays chapter text with customizable typography (font size, family,
  * weight, background theme). Supports prev/next chapter navigation and
@@ -272,11 +272,11 @@ function SettingsPanel({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-interface NovelReaderContentProps {
+interface NovelViewerProps {
   win: WindowState;
 }
 
-export function NovelReaderContent({ win }: NovelReaderContentProps) {
+export function NovelViewer({ win }: NovelViewerProps) {
   const [currentChapterId, setCurrentChapterId] = useState(
     win.metadata.chapterId,
   );
@@ -584,4 +584,4 @@ export function NovelReaderContent({ win }: NovelReaderContentProps) {
   );
 }
 
-export default NovelReaderContent;
+export default NovelViewer;
