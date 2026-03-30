@@ -29,13 +29,15 @@ export default function NovelReaderSettingsPanel({
   const theme = (values.theme as string) ?? "light";
 
   return (
-    <div className="space-y-5">
+    <div className="divide-y divide-black/[0.04] dark:divide-white/[0.06]">
       {/* Font size */}
-      <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          字体大小
+      <div className="flex items-start justify-between gap-6 px-4 py-3.5">
+        <div className="min-w-0 pt-0.5">
+          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+            字体大小
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="shrink-0 flex items-center gap-2.5">
           <input
             type="range"
             min={14}
@@ -45,29 +47,31 @@ export default function NovelReaderSettingsPanel({
             onChange={(e) =>
               onChange({ fontSize: Number.parseInt(e.target.value, 10) })
             }
-            className="flex-1"
+            className="w-28 accent-[var(--accent)] h-1.5 appearance-none rounded-full bg-gray-200 dark:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--accent)] [&::-webkit-slider-thumb]:shadow-sm"
           />
-          <span className="w-12 text-center text-sm tabular-nums text-gray-500">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tabular-nums w-10 text-right">
             {fontSize}px
           </span>
         </div>
       </div>
 
       {/* Font family */}
-      <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          字体
+      <div className="flex items-start justify-between gap-6 px-4 py-3.5">
+        <div className="min-w-0 pt-0.5">
+          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+            字体
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="shrink-0 flex gap-1.5">
           {FONT_FAMILIES.map((f) => (
             <button
               key={f.key}
               type="button"
               onClick={() => onChange({ fontFamily: f.key })}
-              className={`flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors cursor-pointer ${
+              className={`rounded-lg border px-3 py-1 text-xs transition-colors cursor-pointer ${
                 fontFamily === f.key
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-medium"
-                  : "border-black/[0.1] dark:border-white/[0.12] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  : "border-black/[0.08] dark:border-white/[0.1] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               }`}
             >
               {f.label}
@@ -77,20 +81,22 @@ export default function NovelReaderSettingsPanel({
       </div>
 
       {/* Font weight */}
-      <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          字重
+      <div className="flex items-start justify-between gap-6 px-4 py-3.5">
+        <div className="min-w-0 pt-0.5">
+          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+            字重
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="shrink-0 flex gap-1.5">
           {(["normal", "bold"] as const).map((w) => (
             <button
               key={w}
               type="button"
               onClick={() => onChange({ fontWeight: w })}
-              className={`flex-1 rounded-lg border px-3 py-1.5 text-sm transition-colors cursor-pointer ${
+              className={`rounded-lg border px-3 py-1 text-xs transition-colors cursor-pointer ${
                 fontWeight === w
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-medium"
-                  : "border-black/[0.1] dark:border-white/[0.12] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  : "border-black/[0.08] dark:border-white/[0.1] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               }`}
               style={{ fontWeight: w }}
             >
@@ -101,11 +107,13 @@ export default function NovelReaderSettingsPanel({
       </div>
 
       {/* Theme */}
-      <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          阅读器背景
+      <div className="flex items-start justify-between gap-6 px-4 py-3.5">
+        <div className="min-w-0 pt-0.5">
+          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+            阅读器背景
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="shrink-0 flex items-center gap-2.5">
           {THEME_SWATCHES.map((t) => (
             <button
               key={t.key}
@@ -114,14 +122,14 @@ export default function NovelReaderSettingsPanel({
               className="flex flex-col items-center gap-1 cursor-pointer"
             >
               <div
-                className="h-8 w-8 rounded-full border-2 transition-all"
+                className="h-7 w-7 rounded-full border-2 transition-all"
                 style={{
                   backgroundColor: t.bg,
                   borderColor:
                     theme === t.key ? "var(--accent)" : "rgba(0,0,0,0.1)",
                 }}
               />
-              <span className="text-xs text-gray-500">{t.label}</span>
+              <span className="text-[10px] text-gray-500">{t.label}</span>
             </button>
           ))}
         </div>
