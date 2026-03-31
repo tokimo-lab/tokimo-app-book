@@ -1,19 +1,10 @@
-import {
-  Checkbox,
-  Empty,
-  Modal,
-  PosterCard,
-  Spin,
-  Tag,
-} from "@tokiomo/components";
-import { BookOpen, Download, FolderSync, RefreshCw } from "lucide-react";
+import { Empty, PosterCard, Spin, Tag } from "@tokiomo/components";
+import { BookOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import NovelDownloadModal from "@/apps/novel/components/NovelDownloadModal";
 import type { NovelOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { buildPosterUrl } from "@/lib/poster";
-import type { MenuBarConfig } from "@/system";
-import { useMenuBar, useMessage, useWindowNav } from "@/system";
+import { useWindowNav } from "@/system";
 
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;
@@ -121,16 +112,12 @@ function BookCard({
 export default function NovelAppPage() {
   const { params, navigate: navInWindow } = useWindowNav();
   const id = params.appId as string | undefined;
-  const message = useMessage();
 
   const [page, setPage] = useState(1);
   const [allItems, setAllItems] = useState<NovelOutput[]>([]);
   const [sortValue, setSortValue] = useState<SortValue>("addedAt");
   const lastAppendedPageRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
-  const [syncModalOpen, setSyncModalOpen] = useState(false);
-  const [syncClearData, setSyncClearData] = useState(false);
-  const [downloadOpen, setDownloadOpen] = useState(false);
 
   // ── Grid layout ─────────────────────────────────────────────────────────────
   const gridWrapperRef = useRef<HTMLDivElement>(null);
@@ -180,8 +167,7 @@ export default function NovelAppPage() {
   }, []);
 
   // ── Data ────────────────────────────────────────────────────────────────────
-  const libraryQuery = api.app.getById.useQuery({ id: id! }, { enabled: !!id });
-  const library = libraryQuery.data;
+  api.app.getById.useQuery({ id: id! }, { enabled: !!id });
 
   const sortParams = parseSortValue(sortValue);
 
@@ -253,94 +239,10 @@ export default function NovelAppPage() {
     [navInWindow],
   );
 
-  // ── Sync ────────────────────────────────────────────────────────────────────
-  const syncMut = api.app.sync.useMutation({
-    onSuccess: () => {
-      message.success("同步已开始");
-      setSyncModalOpen(false);
-    },
-    onError: (error) => {
-      message.error(error.message || "同步失败");
-    },
-  });
-
-  // ── Menu Bar (macOS-style structured config) ──────────────────────────────
-  const menuBarConfig: MenuBarConfig | null = useMemo(() => {
-    if (!id) return null;
-
-    return {
-      menus: [
-        {
-          key: "actions",
-          label: "操作",
-          items: [
-            {
-              key: "refresh",
-              label: "刷新",
-              icon: <RefreshCw size={14} />,
-              onClick: () => void novelsQuery.refetch(),
-            },
-            {
-              key: "download-novel",
-              label: "下载小说",
-              icon: <Download size={14} />,
-              onClick: () => setDownloadOpen(true),
-            },
-            { type: "divider" as const },
-            {
-              key: "sync",
-              label: "同步资料库",
-              icon: <FolderSync size={14} />,
-              disabled: syncMut.isPending,
-              onClick: () => {
-                setSyncClearData(false);
-                setSyncModalOpen(true);
-              },
-            },
-          ],
-        },
-      ],
-      search: {
-        appId: id,
-        searchType: "novel" as const,
-        onSelect: (item) =>
-          navInWindow(item.title ?? "Novel", { novelId: item.id }),
-      },
-    };
-  }, [id, novelsQuery.refetch, syncMut.isPending, navInWindow]);
-
-  useMenuBar(menuBarConfig);
-
   if (!id) return null;
 
   return (
     <div className="space-y-4">
-      <Modal
-        open={syncModalOpen}
-        title="同步小说库"
-        okText="开始同步"
-        cancelText="取消"
-        confirmLoading={syncMut.isPending}
-        onCancel={() => setSyncModalOpen(false)}
-        onOk={async () => {
-          try {
-            await syncMut.mutateAsync({ id: id!, clearData: syncClearData });
-          } finally {
-            setSyncModalOpen(false);
-          }
-        }}
-      >
-        <Checkbox
-          checked={syncClearData}
-          onChange={(e) => setSyncClearData(e.target.checked)}
-        >
-          清空数据重新同步
-        </Checkbox>
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          勾选后将删除应用中所有已有条目并重新完整同步，适合修复数据异常。
-        </p>
-      </Modal>
-
       {/* Sort + Content */}
       <section className="rounded-xl border border-[var(--glass-border)] bg-black/[0.02] p-4 dark:bg-white/[0.03]">
         {/* Header */}
@@ -412,14 +314,6 @@ export default function NovelAppPage() {
           )}
         </div>
       </section>
-
-      {/* Download Modal */}
-      <NovelDownloadModal
-        open={downloadOpen}
-        onClose={() => setDownloadOpen(false)}
-        appId={id}
-        appName={library?.name ?? "小说库"}
-      />
     </div>
   );
 }

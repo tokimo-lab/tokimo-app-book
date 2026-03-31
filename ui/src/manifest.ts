@@ -40,6 +40,7 @@ export const manifest: AppManifest = {
   supportedTypes: ["novel", "manga", "ebook"],
   defaultSize: { width: 1200, height: 800 },
   component: () => import("./pages/NovelAppPage"),
+  menuBar: () => import("./components/NovelMenuBar"),
 
   settings: readingLibrarySettings(),
   settingsByType: {
