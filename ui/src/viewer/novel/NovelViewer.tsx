@@ -277,8 +277,12 @@ interface NovelViewerProps {
 }
 
 export function NovelViewer({ win }: NovelViewerProps) {
+  // Extract chapterId from route (/chapters/:chapterId), fallback to metadata
+  const routeChapterId = win.route.startsWith("/chapters/")
+    ? win.route.slice("/chapters/".length)
+    : undefined;
   const [currentChapterId, setCurrentChapterId] = useState(
-    win.metadata.chapterId,
+    routeChapterId ?? win.metadata.chapterId,
   );
   const [settings, setSettings] = useState<ReaderSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);

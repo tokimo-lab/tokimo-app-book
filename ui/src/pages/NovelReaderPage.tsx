@@ -23,6 +23,7 @@ export default function NovelReaderPage() {
       openWindow({
         type: "novel",
         title: "小说",
+        route: `/chapters/${chapterId}`,
         novelId,
         chapterId,
       });

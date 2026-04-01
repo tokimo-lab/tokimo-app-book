@@ -8,8 +8,8 @@ import { useMenuBar, useMessage, useWindowNav } from "@/system";
 import NovelDownloadModal from "./NovelDownloadModal";
 
 export default function NovelMenuBar({ children }: { children: ReactNode }) {
-  const { params, navigate: navInWindow } = useWindowNav();
-  const id = params.appId as string | undefined;
+  const { metadata, navigate } = useWindowNav();
+  const id = metadata.appId as string | undefined;
   const message = useMessage();
   const qc = useQueryClient();
 
@@ -70,10 +70,10 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
         appId: id,
         searchType: "novel" as const,
         onSelect: (item) =>
-          navInWindow(item.title ?? "Novel", { novelId: item.id }),
+          navigate(`/novels/${item.id}`, item.title ?? "Novel"),
       },
     };
-  }, [id, qc, syncMut.isPending, navInWindow]);
+  }, [id, qc, syncMut.isPending, navigate]);
 
   useMenuBar(menuBarConfig);
 

@@ -166,9 +166,9 @@ function FavoriteButton({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovelDetailPage() {
-  const { params, goBack, openWindow } = useWindowNav();
-  const id = params.appId as string | undefined;
-  const novelId = params.novelId as string | undefined;
+  const { params, metadata, goBack, openWindow } = useWindowNav();
+  const id = metadata.appId as string | undefined;
+  const novelId = params.novelId;
 
   const detailQuery = api.novel.getNovelDetail.useQuery(
     { id: novelId! },
@@ -206,6 +206,7 @@ export default function NovelDetailPage() {
       openWindow({
         type: "novel",
         title: novel?.title ?? "小说",
+        route: `/chapters/${chapterId}`,
         sourceType: "novel",
         sourceId: novelId,
         appId: id,

@@ -110,8 +110,8 @@ function BookCard({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovelAppPage() {
-  const { params, navigate: navInWindow } = useWindowNav();
-  const id = params.appId as string | undefined;
+  const { metadata, navigate } = useWindowNav();
+  const id = metadata.appId as string | undefined;
 
   const [page, setPage] = useState(1);
   const [allItems, setAllItems] = useState<NovelOutput[]>([]);
@@ -234,9 +234,9 @@ export default function NovelAppPage() {
 
   const handleItemClick = useCallback(
     (item: NovelOutput) => {
-      navInWindow(item.title ?? "Novel", { novelId: item.id });
+      navigate(`/novels/${item.id}`, item.title ?? "Novel");
     },
-    [navInWindow],
+    [navigate],
   );
 
   if (!id) return null;
