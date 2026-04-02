@@ -480,7 +480,7 @@ export default function NovelDownloadModal({
                 <button
                   type="button"
                   onClick={() => setKeyword("")}
-                  className="shrink-0 cursor-pointer text-[var(--text-muted)] hover:text-gray-600 dark:hover:text-zinc-300"
+                  className="shrink-0 cursor-pointer text-[var(--text-muted)] hover:text-fg-secondary"
                 >
                   <X size={14} />
                 </button>
