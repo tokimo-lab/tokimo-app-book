@@ -187,7 +187,7 @@ export function NovelDownloadProvider({
       let novelId: string | undefined;
 
       fetchSseEvents(
-        "/api/novel/download",
+        "/api/apps/novel/download",
         {
           provider: params.provider,
           bookId: params.bookId,

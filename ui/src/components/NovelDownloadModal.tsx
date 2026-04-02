@@ -208,7 +208,7 @@ export default function NovelDownloadModal({
     setProviderCount(providersQuery.data?.length ?? 0);
 
     fetchSseEvents(
-      "/api/novel/search",
+      "/api/apps/novel/search",
       { keyword: trimmed },
       (evt) => {
         if (evt.event === "result") {

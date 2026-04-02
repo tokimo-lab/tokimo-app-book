@@ -207,7 +207,7 @@ export default function NovelSearchSection() {
     setProviderCount(providersQuery.data?.length ?? 0);
 
     fetchSseEvents(
-      "/api/novel/search",
+      "/api/apps/novel/search",
       { keyword: trimmed },
       (evt) => {
         if (evt.event === "result") {
@@ -279,7 +279,7 @@ export default function NovelSearchSection() {
     let novelId: string | undefined;
 
     fetchSseEvents(
-      "/api/novel/download",
+      "/api/apps/novel/download",
       {
         provider: selectedResult.site,
         bookId: selectedResult.bookId,
