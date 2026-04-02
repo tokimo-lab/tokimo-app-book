@@ -336,7 +336,7 @@ export default function NovelDetailPage() {
           {/* Overview */}
           {novel.overview && (
             <div className="mt-5">
-              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700 dark:text-zinc-300">
+              <p className="whitespace-pre-line text-sm leading-relaxed text-fg-secondary">
                 {novel.overview}
               </p>
             </div>

@@ -5,6 +5,7 @@
  * so users can configure defaults from the settings page.
  */
 
+import { Slider } from "@tokiomo/components";
 import type { AppSettingsRenderProps } from "@/lib/settings-defs";
 
 const THEME_SWATCHES = [
@@ -33,21 +34,18 @@ export default function NovelReaderSettingsPanel({
       {/* Font size */}
       <div className="flex items-start justify-between gap-6 px-4 py-3.5">
         <div className="min-w-0 pt-0.5">
-          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+          <div className="text-sm font-medium text-fg-primary leading-tight">
             字体大小
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2.5">
-          <input
-            type="range"
+          <Slider
             min={14}
             max={24}
             step={2}
             value={fontSize}
-            onChange={(e) =>
-              onChange({ fontSize: Number.parseInt(e.target.value, 10) })
-            }
-            className="w-28 accent-[var(--accent)] h-1.5 appearance-none rounded-full bg-gray-200 dark:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--accent)] [&::-webkit-slider-thumb]:shadow-sm"
+            onChange={(v) => onChange({ fontSize: v })}
+            className="w-28"
           />
           <span className="text-xs font-medium text-fg-muted tabular-nums w-10 text-right">
             {fontSize}px
@@ -58,7 +56,7 @@ export default function NovelReaderSettingsPanel({
       {/* Font family */}
       <div className="flex items-start justify-between gap-6 px-4 py-3.5">
         <div className="min-w-0 pt-0.5">
-          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+          <div className="text-sm font-medium text-fg-primary leading-tight">
             字体
           </div>
         </div>
@@ -83,7 +81,7 @@ export default function NovelReaderSettingsPanel({
       {/* Font weight */}
       <div className="flex items-start justify-between gap-6 px-4 py-3.5">
         <div className="min-w-0 pt-0.5">
-          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+          <div className="text-sm font-medium text-fg-primary leading-tight">
             字重
           </div>
         </div>
@@ -109,7 +107,7 @@ export default function NovelReaderSettingsPanel({
       {/* Theme */}
       <div className="flex items-start justify-between gap-6 px-4 py-3.5">
         <div className="min-w-0 pt-0.5">
-          <div className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+          <div className="text-sm font-medium text-fg-primary leading-tight">
             阅读器背景
           </div>
         </div>

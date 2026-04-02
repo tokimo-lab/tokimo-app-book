@@ -94,7 +94,7 @@ function BookCard({
       onClick={onClick}
     >
       <p
-        className="truncate text-sm font-medium text-gray-900 dark:text-gray-100"
+        className="truncate text-sm font-medium text-fg-primary"
         title={item.title}
       >
         {item.title}
@@ -248,9 +248,7 @@ export default function NovelAppPage() {
         {/* Header */}
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2">
-            <h5 className="text-base font-semibold text-gray-800 dark:text-gray-100">
-              全部
-            </h5>
+            <h5 className="text-base font-semibold text-fg-primary">全部</h5>
             <Tag>{total}</Tag>
           </div>
 
