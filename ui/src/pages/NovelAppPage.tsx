@@ -60,7 +60,7 @@ function BookCard({
       src={item.coverPath ? buildPosterUrl(item.coverPath) : undefined}
       alt={item.title}
       fallback={
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400">
+        <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-muted">
           <BookOpen size={36} strokeWidth={1.5} />
           <span className="max-w-[80%] truncate px-2 text-center text-xs">
             {item.title}
@@ -99,7 +99,7 @@ function BookCard({
       >
         {item.title}
       </p>
-      <p className="truncate text-xs text-zinc-600 dark:text-zinc-400">
+      <p className="truncate text-xs text-fg-muted">
         {[item.author, item.wordCount ? formatWordCount(item.wordCount) : null]
           .filter(Boolean)
           .join(" · ")}
@@ -256,9 +256,7 @@ export default function NovelAppPage() {
 
           {/* 排序 */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-0.5 text-xs text-zinc-600 dark:text-gray-500">
-              排序
-            </span>
+            <span className="mr-0.5 text-xs text-fg-muted">排序</span>
             {SORT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -267,7 +265,7 @@ export default function NovelAppPage() {
                 className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                   sortValue === opt.value
                     ? "bg-primary text-white"
-                    : "bg-black/[0.05] text-gray-600 hover:bg-black/[0.1] dark:bg-white/[0.08] dark:text-zinc-300 dark:hover:bg-white/[0.14]"
+                    : "bg-black/[0.05] text-fg-secondary hover:bg-black/[0.1] dark:bg-white/[0.08] dark:hover:bg-white/[0.14]"
                 }`}
               >
                 {opt.label}
@@ -305,9 +303,7 @@ export default function NovelAppPage() {
               <div className="mt-2 flex justify-center py-3">
                 {novelsQuery.isFetching && <Spin />}
                 {!hasMore && total > 0 && !novelsQuery.isFetching && (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    已加载全部 {total} 本
-                  </p>
+                  <p className="text-xs text-fg-muted">已加载全部 {total} 本</p>
                 )}
               </div>
             </>

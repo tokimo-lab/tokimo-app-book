@@ -498,7 +498,7 @@ export default function NovelDownloadModal({
 
           {/* Loading indicator */}
           {searching && (
-            <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-fg-muted">
               <Spin size="small" />
               <span>
                 正在搜索 {providerCount} 个站点...

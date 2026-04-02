@@ -411,7 +411,7 @@ export default function NovelSearchSection() {
 
       {/* Loading indicator */}
       {searching && (
-        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-gray-500 mb-3">
+        <div className="flex items-center gap-2 text-xs text-fg-muted mb-3">
           <Spin size="small" />
           <span>
             {t("novel.search.searching", "正在搜索 {{count}} 个站点...", {

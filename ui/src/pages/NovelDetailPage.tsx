@@ -68,18 +68,15 @@ function VolumeSection({
         onClick={() => setOpen((v) => !v)}
       >
         {open ? (
-          <ChevronDown size={16} className="text-zinc-600 dark:text-zinc-400" />
+          <ChevronDown size={16} className="text-fg-muted" />
         ) : (
-          <ChevronRight
-            size={16}
-            className="text-zinc-600 dark:text-zinc-400"
-          />
+          <ChevronRight size={16} className="text-fg-muted" />
         )}
         <div className="min-w-0 flex-1">
           <span className="text-sm font-semibold">
             第{volume.volumeNumber}卷{volume.title ? ` · ${volume.title}` : ""}
           </span>
-          <span className="ml-3 text-xs text-zinc-600 dark:text-zinc-400">
+          <span className="ml-3 text-xs text-fg-muted">
             {volume.chapterCount ?? volume.chapters.length}章
             {volume.wordCount != null && volume.wordCount > 0 && (
               <> · {formatWordCount(volume.wordCount)}</>
@@ -116,14 +113,14 @@ function ChapterRow({
       className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
       onClick={onClick}
     >
-      <span className="w-12 flex-shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+      <span className="w-12 flex-shrink-0 text-xs text-fg-muted">
         #{chapter.chapterNumber}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm">
         {chapter.title ?? `第${chapter.chapterNumber}章`}
       </span>
       {chapter.wordCount != null && chapter.wordCount > 0 && (
-        <span className="flex-shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+        <span className="flex-shrink-0 text-xs text-fg-muted">
           {formatWordCount(chapter.wordCount)}
         </span>
       )}
@@ -154,11 +151,7 @@ function FavoriteButton({
     >
       <Heart
         size={20}
-        className={
-          isFavorite
-            ? "fill-red-500 text-red-500"
-            : "text-zinc-600 dark:text-zinc-400"
-        }
+        className={isFavorite ? "fill-red-500 text-red-500" : "text-fg-muted"}
       />
     </button>
   );
@@ -264,11 +257,7 @@ export default function NovelDetailPage() {
             />
           ) : (
             <div className="flex aspect-[2/3] flex-col items-center justify-center bg-[var(--bg-skeleton)] text-5xl">
-              <BookOpen
-                size={48}
-                strokeWidth={1.5}
-                className="text-zinc-600 dark:text-zinc-400"
-              />
+              <BookOpen size={48} strokeWidth={1.5} className="text-fg-muted" />
             </div>
           )}
         </div>
@@ -283,7 +272,7 @@ export default function NovelDetailPage() {
           </div>
 
           {novel.originalTitle && novel.originalTitle !== novel.title && (
-            <p className="mt-1 text-sm text-gray-500">{novel.originalTitle}</p>
+            <p className="mt-1 text-sm text-fg-muted">{novel.originalTitle}</p>
           )}
 
           {/* Tags */}
@@ -307,7 +296,7 @@ export default function NovelDetailPage() {
           </div>
 
           {/* Stats */}
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-zinc-400">
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-fg-muted">
             {novel.totalChapters > 0 && (
               <span className="flex items-center gap-1">
                 <BookOpen size={14} />
@@ -361,7 +350,7 @@ export default function NovelDetailPage() {
       <section>
         <SectionTitle>
           章节目录
-          <span className="ml-2 text-sm font-normal text-zinc-600 dark:text-zinc-400">
+          <span className="ml-2 text-sm font-normal text-fg-muted">
             ({novel.totalChapters}章)
           </span>
         </SectionTitle>
@@ -383,7 +372,7 @@ export default function NovelDetailPage() {
             {novel.orphanChapters.length > 0 && (
               <div className="overflow-hidden rounded-lg border border-[var(--glass-border)]">
                 {novel.volumes.length > 0 && (
-                  <div className="px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-zinc-400">
+                  <div className="px-4 py-2.5 text-sm font-semibold text-fg-muted">
                     其他章节
                   </div>
                 )}
@@ -412,15 +401,12 @@ export default function NovelDetailPage() {
                   key={file.id}
                   className="flex items-center gap-3 rounded-lg border border-[var(--glass-border)] px-4 py-3"
                 >
-                  <FileText
-                    size={20}
-                    className="flex-shrink-0 text-zinc-600 dark:text-zinc-400"
-                  />
+                  <FileText size={20} className="flex-shrink-0 text-fg-muted" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {file.filename}
                     </p>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    <p className="text-xs text-fg-muted">
                       {file.mimeType ?? ""}
                       {file.size != null && <> · {formatFileSize(file.size)}</>}
                     </p>

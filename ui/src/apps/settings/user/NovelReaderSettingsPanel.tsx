@@ -49,7 +49,7 @@ export default function NovelReaderSettingsPanel({
             }
             className="w-28 accent-[var(--accent)] h-1.5 appearance-none rounded-full bg-gray-200 dark:bg-gray-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--accent)] [&::-webkit-slider-thumb]:shadow-sm"
           />
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tabular-nums w-10 text-right">
+          <span className="text-xs font-medium text-fg-muted tabular-nums w-10 text-right">
             {fontSize}px
           </span>
         </div>
@@ -71,7 +71,7 @@ export default function NovelReaderSettingsPanel({
               className={`rounded-lg border px-3 py-1 text-xs transition-colors cursor-pointer ${
                 fontFamily === f.key
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-medium"
-                  : "border-black/[0.08] dark:border-white/[0.1] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  : "border-black/[0.08] dark:border-white/[0.1] text-fg-muted hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               }`}
             >
               {f.label}
@@ -96,7 +96,7 @@ export default function NovelReaderSettingsPanel({
               className={`rounded-lg border px-3 py-1 text-xs transition-colors cursor-pointer ${
                 fontWeight === w
                   ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-medium"
-                  : "border-black/[0.08] dark:border-white/[0.1] text-gray-600 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  : "border-black/[0.08] dark:border-white/[0.1] text-fg-muted hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
               }`}
               style={{ fontWeight: w }}
             >
@@ -129,7 +129,7 @@ export default function NovelReaderSettingsPanel({
                     theme === t.key ? "var(--accent)" : "rgba(0,0,0,0.1)",
                 }}
               />
-              <span className="text-[10px] text-gray-500">{t.label}</span>
+              <span className="text-[10px] text-fg-muted">{t.label}</span>
             </button>
           ))}
         </div>
