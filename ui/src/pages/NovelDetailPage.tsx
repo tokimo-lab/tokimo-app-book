@@ -26,7 +26,7 @@ import type {
   NovelVolumeOutput,
 } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
-import { resolveStoragePath } from "@/lib/storage-url";
+import { posterThumbUrl, thumbUrl } from "@/lib/thumb";
 import { useBackgroundArt, useWindowNav } from "@/system";
 
 function formatWordCount(count: number | null | undefined): string {
@@ -173,7 +173,7 @@ export default function NovelDetailPage() {
   const { setBackgroundArt } = useBackgroundArt();
   useEffect(() => {
     if (novel?.coverPath) {
-      setBackgroundArt(resolveStoragePath(novel.coverPath));
+      setBackgroundArt(posterThumbUrl(novel.coverPath, 1280) ?? null);
     }
     return () => {
       setBackgroundArt(null);
@@ -251,7 +251,7 @@ export default function NovelDetailPage() {
         <div className="hidden w-[180px] flex-shrink-0 overflow-hidden rounded-xl shadow-2xl md:block">
           {novel.coverPath ? (
             <Image
-              src={resolveStoragePath(novel.coverPath)}
+              src={thumbUrl("novel", novel.id, 300)}
               alt={novel.title}
               className="h-full w-full object-cover"
             />
