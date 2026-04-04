@@ -3,7 +3,7 @@ import { BookOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NovelOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
-import { thumbUrl } from "@/lib/thumb";
+import { posterThumbUrl } from "@/lib/thumb";
 import { useWindowNav } from "@/system";
 
 const MIN_CARD_WIDTH = 150;
@@ -57,7 +57,7 @@ function BookCard({
 }) {
   return (
     <PosterCard
-      src={item.coverPath ? thumbUrl("novel", item.id, 300) : undefined}
+      src={posterThumbUrl(item.coverPath, 300)}
       alt={item.title}
       fallback={
         <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-muted">
