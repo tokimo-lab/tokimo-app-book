@@ -12,7 +12,6 @@ use axum::{
 };
 use futures_util::StreamExt;
 use futures_util::stream::Stream;
-use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 use ts_rs::TS;
@@ -22,9 +21,12 @@ use bytes::Bytes;
 use tracing::info;
 
 use crate::AppState;
-use crate::db::entities::{novel_chapters, novel_volumes, novels};
-use crate::db::repos::novel_repo::NovelRepo;
+use crate::db::entities::novel_chapters;
+use crate::db::repos::novel_repo::{
+    CreateNovelInput, InsertChapterInput, InsertVolumeInput, NovelRepo,
+};
 use crate::error::AppError;
+use crate::error::OptionExt;
 use crate::handlers::{ApiResponse, ok};
 use crate::services::storage::UploadOptions;
 
@@ -309,7 +311,7 @@ async fn do_download_novel(
     // Resolve app file system source
     let lib_source = NovelRepo::get_app_source(&db, app_id)
         .await?
-        .ok_or_else(|| AppError::BadRequest("App has no file system sources".into()))?;
+        .bad_request("App has no file system sources")?;
 
     let source_id = lib_source.source_id.to_string();
     let root_path = lib_source.root_path.clone();
@@ -348,37 +350,33 @@ async fn do_download_novel(
 
     // Create Novel record
     let novel_id = Uuid::new_v4();
-    let now = chrono::Utc::now().fixed_offset();
 
-    let novel = novels::ActiveModel {
-        id: Set(novel_id),
-        app_id: Set(app_id),
-        title: Set(novel_title.clone()),
-        author: Set(Some(book_info.author.clone())),
-        overview: Set(Some(book_info.summary.clone())),
-        serial_status: Set(Some(serial_status)),
-        word_count: Set(word_count),
-        year: Set(year),
-        source_provider: Set(Some(input.provider.clone())),
-        source_book_id: Set(Some(input.book_id.clone())),
-        created_at: Set(Some(now)),
-        updated_at: Set(Some(now)),
-        ..Default::default()
-    };
-    novels::Entity::insert(novel).exec(&db).await?;
+    NovelRepo::create(
+        &db,
+        CreateNovelInput {
+            id: novel_id,
+            app_id,
+            title: novel_title.clone(),
+            author: Some(book_info.author.clone()),
+            overview: Some(book_info.summary.clone()),
+            serial_status: Some(serial_status),
+            word_count,
+            year,
+            source_provider: Some(input.provider.clone()),
+            source_book_id: Some(input.book_id.clone()),
+        },
+    )
+    .await?;
 
     // Download and upload cover image
     if !book_info.cover_url.is_empty() {
         match download_and_upload_cover(&state, novel_id, &book_info.cover_url).await {
             Ok(cover_path) => {
-                let mut active: novels::ActiveModel = novels::Entity::find_by_id(novel_id)
-                    .one(&db)
-                    .await?
-                    .unwrap()
-                    .into();
-                active.cover_path = Set(Some(cover_path.clone()));
-                active.update(&db).await?;
-                info!("Downloaded cover for novel {}: {}", novel_title, cover_path);
+                if let Err(e) = NovelRepo::update_cover_path(&db, novel_id, cover_path.clone()).await {
+                    warn!("Failed to update novel cover path: {e}");
+                } else {
+                    info!("Downloaded cover for novel {}: {}", novel_title, cover_path);
+                }
             }
             Err(e) => {
                 warn!("Failed to download novel cover: {e}");
@@ -405,17 +403,17 @@ async fn do_download_novel(
     let mut volume_map: std::collections::HashMap<String, Uuid> = std::collections::HashMap::new();
     for (vi, vol) in book_info.volumes.iter().enumerate() {
         let vol_id = Uuid::new_v4();
-        let vol_model = novel_volumes::ActiveModel {
-            id: Set(vol_id),
-            novel_id: Set(novel_id),
-            volume_number: Set((vi + 1) as i32),
-            title: Set(Some(vol.volume_name.clone())),
-            chapter_count: Set(Some(vol.chapters.len() as i32)),
-            created_at: Set(Some(now)),
-            updated_at: Set(Some(now)),
-            ..Default::default()
-        };
-        novel_volumes::Entity::insert(vol_model).exec(&db).await?;
+        NovelRepo::insert_volume(
+            &db,
+            InsertVolumeInput {
+                id: vol_id,
+                novel_id,
+                volume_number: (vi + 1) as i32,
+                title: Some(vol.volume_name.clone()),
+                chapter_count: Some(vol.chapters.len() as i32),
+            },
+        )
+        .await?;
         volume_map.insert(vol.volume_name.clone(), vol_id);
     }
 
@@ -501,20 +499,20 @@ async fn do_download_novel(
                         match vfs.put(StdPath::new(&file_path), content_bytes).await {
                             Ok(_) => {
                                 let ch_id = Uuid::new_v4();
-                                let chapter = novel_chapters::ActiveModel {
-                                    id: Set(ch_id),
-                                    novel_id: Set(novel_id),
-                                    volume_id: Set(current_vol_id),
-                                    chapter_number: Set(ch_num),
-                                    title: Set(Some(title.clone())),
-                                    word_count: Set(Some(word_cnt)),
-                                    file_path: Set(Some(file_path)),
-                                    is_vip: Set(false),
-                                    created_at: Set(Some(now)),
-                                    updated_at: Set(Some(now)),
-                                    ..Default::default()
-                                };
-                                let _ = novel_chapters::Entity::insert(chapter).exec(&db).await;
+                                let _ = NovelRepo::insert_chapter(
+                                    &db,
+                                    InsertChapterInput {
+                                        id: ch_id,
+                                        novel_id,
+                                        volume_id: current_vol_id,
+                                        chapter_number: ch_num,
+                                        title: Some(title.clone()),
+                                        word_count: Some(word_cnt),
+                                        file_path: Some(file_path),
+                                        is_vip: false,
+                                    },
+                                )
+                                .await;
                                 downloaded += 1;
                                 rescued += 1;
                                 events.push(
@@ -539,20 +537,20 @@ async fn do_download_novel(
 
                     // No alternative found (or write failed) — mark as VIP
                     let ch_id = Uuid::new_v4();
-                    let chapter = novel_chapters::ActiveModel {
-                        id: Set(ch_id),
-                        novel_id: Set(novel_id),
-                        volume_id: Set(current_vol_id),
-                        chapter_number: Set(ch_num),
-                        title: Set(Some(title.clone())),
-                        word_count: Set(Some(0)),
-                        file_path: Set(None),
-                        is_vip: Set(true),
-                        created_at: Set(Some(now)),
-                        updated_at: Set(Some(now)),
-                        ..Default::default()
-                    };
-                    let _ = novel_chapters::Entity::insert(chapter).exec(&db).await;
+                    let _ = NovelRepo::insert_chapter(
+                        &db,
+                        InsertChapterInput {
+                            id: ch_id,
+                            novel_id,
+                            volume_id: current_vol_id,
+                            chapter_number: ch_num,
+                            title: Some(title.clone()),
+                            word_count: Some(0),
+                            file_path: None,
+                            is_vip: true,
+                        },
+                    )
+                    .await;
                     vip_skipped += 1;
                     events.push(
                         Event::default().event("chapter_vip").data(
@@ -579,20 +577,20 @@ async fn do_download_novel(
                     Ok(_) => {
                         let ch_id = Uuid::new_v4();
 
-                        let chapter = novel_chapters::ActiveModel {
-                            id: Set(ch_id),
-                            novel_id: Set(novel_id),
-                            volume_id: Set(current_vol_id),
-                            chapter_number: Set(ch_num),
-                            title: Set(Some(title.clone())),
-                            word_count: Set(Some(word_cnt)),
-                            file_path: Set(Some(file_path)),
-                            is_vip: Set(false),
-                            created_at: Set(Some(now)),
-                            updated_at: Set(Some(now)),
-                            ..Default::default()
-                        };
-                        let _ = novel_chapters::Entity::insert(chapter).exec(&db).await;
+                        let _ = NovelRepo::insert_chapter(
+                            &db,
+                            InsertChapterInput {
+                                id: ch_id,
+                                novel_id,
+                                volume_id: current_vol_id,
+                                chapter_number: ch_num,
+                                title: Some(title.clone()),
+                                word_count: Some(word_cnt),
+                                file_path: Some(file_path),
+                                is_vip: false,
+                            },
+                        )
+                        .await;
 
                         downloaded += 1;
                         events.push(
@@ -704,7 +702,7 @@ pub async fn get_novel_detail(
 
     let novel = NovelRepo::get_by_id(db, novel_id)
         .await?
-        .ok_or_else(|| AppError::NotFound(format!("Novel {id} not found")))?;
+        .not_found(format!("Novel {id} not found"))?;
 
     let volumes = NovelRepo::get_volumes(db, novel_id).await?;
     let all_chapters = NovelRepo::get_chapters(db, novel_id).await?;
@@ -796,7 +794,7 @@ pub async fn get_chapter_content(
 
     let chapter = NovelRepo::get_chapter_by_id(db, chapter_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Chapter not found".into()))?;
+        .not_found("Chapter not found")?;
 
     if chapter.novel_id != novel_id {
         return Err(AppError::BadRequest(
@@ -806,12 +804,11 @@ pub async fn get_chapter_content(
 
     let novel = NovelRepo::get_by_id(db, novel_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Novel not found".into()))?;
+        .not_found("Novel not found")?;
 
     // Resolve volume title
     let volume_title = match chapter.volume_id {
-        Some(vol_id) => novel_volumes::Entity::find_by_id(vol_id)
-            .one(db)
+        Some(vol_id) => NovelRepo::get_volume_by_id(db, vol_id)
             .await?
             .and_then(|v| v.title),
         None => None,

@@ -8,7 +8,7 @@
 //! 5. Create MediaFile record linking the file to the novel
 
 use bytes::Bytes;
-use regex_lite::Regex;
+use regex::Regex;
 use rust_client_api::metadata_providers::douban::{DoubanBookDetail, DoubanClient, DoubanConfig};
 use rust_client_api::metadata_providers::qidian::{
     QidianBookDetail, QidianClient, QidianConfig, QidianSearchItem,

@@ -1,11 +1,46 @@
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, EntityTrait, Order,
-    QueryFilter, QueryOrder, Statement,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
+    EntityTrait, Order, QueryFilter, QueryOrder, Set, Statement,
 };
 use uuid::Uuid;
 
 use crate::db::entities::{app_file_systems, media_files, novel_chapters, novel_volumes, novels};
 use crate::error::AppError;
+use crate::error::OptionExt;
+
+// ── Input structs ────────────────────────────────────────────────────────────
+
+pub struct CreateNovelInput {
+    pub id: Uuid,
+    pub app_id: Uuid,
+    pub title: String,
+    pub author: Option<String>,
+    pub overview: Option<String>,
+    pub serial_status: Option<String>,
+    pub word_count: Option<i32>,
+    pub year: Option<i32>,
+    pub source_provider: Option<String>,
+    pub source_book_id: Option<String>,
+}
+
+pub struct InsertVolumeInput {
+    pub id: Uuid,
+    pub novel_id: Uuid,
+    pub volume_number: i32,
+    pub title: Option<String>,
+    pub chapter_count: Option<i32>,
+}
+
+pub struct InsertChapterInput {
+    pub id: Uuid,
+    pub novel_id: Uuid,
+    pub volume_id: Option<Uuid>,
+    pub chapter_number: i32,
+    pub title: Option<String>,
+    pub word_count: Option<i32>,
+    pub file_path: Option<String>,
+    pub is_vip: bool,
+}
 
 // ── Helpers ──
 
@@ -209,5 +244,96 @@ impl NovelRepo {
             .filter(app_file_systems::Column::AppId.eq(app_id))
             .one(db)
             .await?)
+    }
+
+    /// Insert a new novel record.
+    pub async fn create(db: &DatabaseConnection, input: CreateNovelInput) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let active = novels::ActiveModel {
+            id: Set(input.id),
+            app_id: Set(input.app_id),
+            title: Set(input.title),
+            author: Set(input.author),
+            overview: Set(input.overview),
+            serial_status: Set(input.serial_status),
+            word_count: Set(input.word_count),
+            year: Set(input.year),
+            source_provider: Set(input.source_provider),
+            source_book_id: Set(input.source_book_id),
+            created_at: Set(Some(now)),
+            updated_at: Set(Some(now)),
+            ..Default::default()
+        };
+        novels::Entity::insert(active).exec(db).await?;
+        Ok(())
+    }
+
+    /// Update the cover image path for a novel.
+    pub async fn update_cover_path(
+        db: &DatabaseConnection,
+        novel_id: Uuid,
+        path: String,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let model = novels::Entity::find_by_id(novel_id)
+            .one(db)
+            .await?
+            .not_found("Novel not found")?;
+        let mut active: novels::ActiveModel = model.into();
+        active.cover_path = Set(Some(path));
+        active.updated_at = Set(Some(now));
+        active.update(db).await?;
+        Ok(())
+    }
+
+    /// Insert a novel volume.
+    pub async fn insert_volume(
+        db: &DatabaseConnection,
+        input: InsertVolumeInput,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let active = novel_volumes::ActiveModel {
+            id: Set(input.id),
+            novel_id: Set(input.novel_id),
+            volume_number: Set(input.volume_number),
+            title: Set(input.title),
+            chapter_count: Set(input.chapter_count),
+            created_at: Set(Some(now)),
+            updated_at: Set(Some(now)),
+            ..Default::default()
+        };
+        novel_volumes::Entity::insert(active).exec(db).await?;
+        Ok(())
+    }
+
+    /// Insert a novel chapter.
+    pub async fn insert_chapter(
+        db: &DatabaseConnection,
+        input: InsertChapterInput,
+    ) -> Result<(), AppError> {
+        let now = chrono::Utc::now().fixed_offset();
+        let active = novel_chapters::ActiveModel {
+            id: Set(input.id),
+            novel_id: Set(input.novel_id),
+            volume_id: Set(input.volume_id),
+            chapter_number: Set(input.chapter_number),
+            title: Set(input.title),
+            word_count: Set(input.word_count),
+            file_path: Set(input.file_path),
+            is_vip: Set(input.is_vip),
+            created_at: Set(Some(now)),
+            updated_at: Set(Some(now)),
+            ..Default::default()
+        };
+        novel_chapters::Entity::insert(active).exec(db).await?;
+        Ok(())
+    }
+
+    /// Get a single novel volume by ID.
+    pub async fn get_volume_by_id(
+        db: &DatabaseConnection,
+        volume_id: Uuid,
+    ) -> Result<Option<novel_volumes::Model>, AppError> {
+        Ok(novel_volumes::Entity::find_by_id(volume_id).one(db).await?)
     }
 }
