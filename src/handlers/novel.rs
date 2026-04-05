@@ -296,6 +296,7 @@ pub async fn download_novel(
 }
 
 /// Core download logic. Returns collected events to be streamed to the client.
+#[allow(clippy::too_many_lines)]
 async fn do_download_novel(
     state: Arc<AppState>,
     input: NovelDownloadInput,
@@ -1107,7 +1108,7 @@ async fn try_alt_chapter(alts: &[(String, String, String)]) -> Option<(String, S
             Ok(Ok(ch)) if !is_vip_stub(&ch.content) && ch.content.len() > 80 => {
                 return Some((ch.content, provider_id.clone()));
             }
-            _ => continue,
+            _ => {}
         }
     }
     None
