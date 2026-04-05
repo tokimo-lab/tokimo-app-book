@@ -12,7 +12,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { NovelSearchResultOutput } from "@/generated/rust-types";
 import { rustUrl } from "@/lib/rust-api-runtime";
-import { useNovelDownload } from "@/shared/hooks";
+import { useNovelDownload } from "../hooks/NovelDownloadContext";
 
 // ── SSE helpers ──────────────────────────────────────────────────────────────
 
