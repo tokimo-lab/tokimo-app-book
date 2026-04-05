@@ -445,7 +445,7 @@ async fn do_download_novel(
         ),
     );
     let alt_map = build_alt_chapter_map(&novel_title, &book_info.author, &input.provider).await;
-    let alt_chapter_count: usize = alt_map.values().map(|v| v.len()).sum();
+    let alt_chapter_count: usize = alt_map.values().map(std::vec::Vec::len).sum();
     if alt_chapter_count > 0 {
         events.push(
             Event::default().event("alt_sources_ready").data(
@@ -497,7 +497,7 @@ async fn do_download_novel(
                         let content_bytes = alt_content.into_bytes();
 
                         match vfs.put(StdPath::new(&file_path), content_bytes).await {
-                            Ok(_) => {
+                            Ok(()) => {
                                 let ch_id = Uuid::new_v4();
                                 let _ = NovelRepo::insert_chapter(
                                     &db,
@@ -574,7 +574,7 @@ async fn do_download_novel(
                 let word_cnt = content.chars().count() as i32;
 
                 match vfs.put(StdPath::new(&file_path), content_bytes).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         let ch_id = Uuid::new_v4();
 
                         let _ = NovelRepo::insert_chapter(
@@ -779,7 +779,7 @@ pub async fn get_novel_detail(
 
 // ── Chapter content ─────────────────────────────────────────────────────────
 
-/// GET /api/novels/{novel_id}/chapters/{chapter_id}/content
+/// GET /`api/novels/{novel_id}/chapters/{chapter_id}/content`
 pub async fn get_chapter_content(
     State(state): State<Arc<AppState>>,
     Path((novel_id_str, chapter_id_str)): Path<(String, String)>,

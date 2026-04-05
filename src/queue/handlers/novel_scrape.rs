@@ -1,11 +1,11 @@
-//! novel_scrape queue handler — processes novel files discovered from VFS walk.
+//! `novel_scrape` queue handler — processes novel files discovered from VFS walk.
 //!
 //! For each novel file:
 //! 1. Parse title/author from **filename** (never directory name)
 //! 2. Idempotency check against the novels table
 //! 3. Create Novel record in DB
 //! 4. Attempt metadata scrape via Douban Books + Qidian (dual-source, like TMDB+IMDB for movies)
-//! 5. Create MediaFile record linking the file to the novel
+//! 5. Create `MediaFile` record linking the file to the novel
 
 use bytes::Bytes;
 use regex::Regex;
@@ -184,14 +184,14 @@ fn parse_novel_name(raw: &str) -> ParsedNovelName {
         }
         // Otherwise treat whole stem as title
         return ParsedNovelName {
-            title: stem.to_string(),
+            title: stem.clone(),
             author: None,
         };
     }
 
     // Fallback: whole stem is title
     ParsedNovelName {
-        title: stem.to_string(),
+        title: stem.clone(),
         author: None,
     }
 }
@@ -222,7 +222,7 @@ pub async fn handle(
 }
 
 /// Directory mode: a folder of .txt chapter files → one novel with chapter records.
-/// Title is derived from the directory name. Chapters go into novel_chapters table.
+/// Title is derived from the directory name. Chapters go into `novel_chapters` table.
 async fn handle_directory_novel(
     db: &DatabaseConnection,
     state: &Arc<AppState>,
@@ -361,7 +361,7 @@ async fn handle_single_file_novel(
         .ok_or("Missing filePath")?;
     let file_size = payload
         .get("fileSize")
-        .and_then(|v| v.as_i64())
+        .and_then(sea_orm::JsonValue::as_i64)
         .unwrap_or(0);
     let checksum = payload
         .get("checksum")
@@ -500,7 +500,7 @@ static RE_CH_CHINESE: LazyLock<Regex> =
 static RE_CH_ENGLISH: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)(?:chapter|ch\.?)\s*(\d+)").unwrap());
 
-/// Leading digits: 001 标题, 001_标题, 001.标题, 001-标题
+/// Leading digits: 001 标题, `001_标题`, 001.标题, 001-标题
 static RE_CH_LEADING: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(\d{1,5})(?:\s|[._\-])").unwrap());
 
@@ -584,7 +584,7 @@ fn chinese_num_to_i32(s: &str) -> Option<i32> {
     }
 }
 
-/// Extract chapter number from a filename stem. Returns (chapter_number, remaining_text_after_marker).
+/// Extract chapter number from a filename stem. Returns (`chapter_number`, `remaining_text_after_marker`).
 fn extract_chapter_number(stem: &str) -> (Option<i32>, String) {
     // Remove volume prefix first: "第一卷 第二章 标题" → "第二章 标题"
     let clean = RE_VOLUME_PREFIX.replace(stem, "");
@@ -645,7 +645,7 @@ fn extract_chapter_title(remaining: &str) -> Option<String> {
     }
 }
 
-/// Parse chapter files from JSON payload into ChapterInfo structs.
+/// Parse chapter files from JSON payload into `ChapterInfo` structs.
 fn parse_chapter_files(files: &[JsonValue]) -> Vec<ChapterInfo> {
     let mut result = Vec::with_capacity(files.len());
 
@@ -671,7 +671,7 @@ fn parse_chapter_files(files: &[JsonValue]) -> Vec<ChapterInfo> {
     result
 }
 
-/// Insert a novel_chapters record.
+/// Insert a `novel_chapters` record.
 async fn insert_novel_chapter(
     db: &impl ConnectionTrait,
     novel_id: Uuid,
@@ -726,7 +726,7 @@ async fn insert_novel_media_file(
     Ok(())
 }
 
-/// Create a DoubanClient from config (same pattern as TMDB for movies).
+/// Create a `DoubanClient` from config (same pattern as TMDB for movies).
 async fn create_douban_client(
     db: &DatabaseConnection,
     http_client: reqwest::Client,
@@ -751,7 +751,7 @@ async fn create_douban_client(
     }))
 }
 
-/// Create a QidianClient (no special config needed — just HTTP client).
+/// Create a `QidianClient` (no special config needed — just HTTP client).
 fn create_qidian_client(http_client: reqwest::Client) -> QidianClient {
     QidianClient::new(QidianConfig {
         http_client,
@@ -763,7 +763,7 @@ fn create_qidian_client(http_client: reqwest::Client) -> QidianClient {
 ///
 /// Tries both sources and merges results:
 /// - Douban: rating, ISBN, publisher, year, overview, cover
-/// - Qidian: serial_status, word_count, qidian_id
+/// - Qidian: `serial_status`, `word_count`, `qidian_id`
 async fn scrape_metadata(
     db: &DatabaseConnection,
     state: &Arc<AppState>,
@@ -978,7 +978,7 @@ async fn update_novel_from_douban(
 
 /// Scrape novel metadata from Qidian (起点中文网) — search → match → detail → update.
 ///
-/// Supplements Douban with serial_status, word_count, and qidian_id.
+/// Supplements Douban with `serial_status`, `word_count`, and `qidian_id`.
 async fn scrape_from_qidian(
     db: &DatabaseConnection,
     state: &Arc<AppState>,

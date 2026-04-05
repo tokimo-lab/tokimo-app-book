@@ -105,14 +105,13 @@ impl NovelRepo {
         let total: i64 = db
             .query_one_raw(count_stmt)
             .await?
-            .map(|r| col::<i64>(&r, "cnt").unwrap_or(0))
-            .unwrap_or(0);
+            .map_or(0, |r| col::<i64>(&r, "cnt").unwrap_or(0));
 
         // Items
         let limit_param = param_idx;
         let offset_param = param_idx + 1;
         let items_sql = format!(
-            r#"SELECT n.id, n.title, n.author, n.overview, n.cover_path, n.serial_status,
+            r"SELECT n.id, n.title, n.author, n.overview, n.cover_path, n.serial_status,
                       n.word_count, n.year, n.source_provider, n.is_favorite,
                       n.scraped_at::text as scraped_at, n.created_at,
                       (SELECT COUNT(*) FROM novel_chapters nc WHERE nc.novel_id = n.id) as chapter_count,
@@ -120,7 +119,7 @@ impl NovelRepo {
                FROM novels n
                WHERE {where_sql}
                ORDER BY {order_col} {order_dir} NULLS LAST
-               LIMIT ${limit_param} OFFSET ${offset_param}"#
+               LIMIT ${limit_param} OFFSET ${offset_param}"
         );
         params.push(page_size.into());
         params.push(((page - 1) * page_size).into());
@@ -163,7 +162,7 @@ impl NovelRepo {
         Ok(novels::Entity::find_by_id(id).one(db).await?)
     }
 
-    /// Get all volumes for a novel, ordered by volume_number.
+    /// Get all volumes for a novel, ordered by `volume_number`.
     pub async fn get_volumes(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -175,7 +174,7 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get all chapters for a novel, ordered by chapter_number.
+    /// Get all chapters for a novel, ordered by `chapter_number`.
     pub async fn get_chapters(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -195,7 +194,7 @@ impl NovelRepo {
         Ok(novel_chapters::Entity::find_by_id(id).one(db).await?)
     }
 
-    /// Get the previous chapter (by chapter_number) within the same novel.
+    /// Get the previous chapter (by `chapter_number`) within the same novel.
     pub async fn get_prev_chapter(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -209,7 +208,7 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get the next chapter (by chapter_number) within the same novel.
+    /// Get the next chapter (by `chapter_number`) within the same novel.
     pub async fn get_next_chapter(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -234,7 +233,7 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get the first app_file_system source for an app.
+    /// Get the first `app_file_system` source for an app.
     pub async fn get_app_source(
         db: &DatabaseConnection,
         app_id: Uuid,
