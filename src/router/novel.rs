@@ -9,6 +9,8 @@ use crate::AppState;
 
 pub fn build_novel_routes() -> Router<Arc<AppState>> {
     Router::new()
+        // App-scoped novel list (previously in build_app_routes)
+        .route("/api/apps/{id}/novels", get(novel::list_novels))
         .route("/api/apps/novel/providers", get(novel::list_providers))
         .route("/api/apps/novel/search", post(novel::search_novels))
         .route("/api/apps/novel/book-info", post(novel::get_book_info))

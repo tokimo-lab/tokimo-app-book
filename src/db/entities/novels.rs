@@ -86,8 +86,6 @@ pub enum Relation {
     NovelFiles,
     #[sea_orm(has_many = "super::novel_genres::Entity")]
     NovelGenres,
-    #[sea_orm(has_many = "super::novel_tags::Entity")]
-    NovelTags,
     #[sea_orm(has_many = "super::novel_volumes::Entity")]
     NovelVolumes,
     #[sea_orm(has_many = "super::user_media_ratings::Entity")]
@@ -138,12 +136,6 @@ impl Related<super::novel_genres::Entity> for Entity {
     }
 }
 
-impl Related<super::novel_tags::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::NovelTags.def()
-    }
-}
-
 impl Related<super::novel_volumes::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::NovelVolumes.def()
@@ -177,15 +169,6 @@ impl Related<super::genres::Entity> for Entity {
     }
     fn via() -> Option<RelationDef> {
         Some(super::novel_genres::Relation::Novels.def().rev())
-    }
-}
-
-impl Related<super::media_tags::Entity> for Entity {
-    fn to() -> RelationDef {
-        super::novel_tags::Relation::MediaTags.def()
-    }
-    fn via() -> Option<RelationDef> {
-        Some(super::novel_tags::Relation::Novels.def().rev())
     }
 }
 
