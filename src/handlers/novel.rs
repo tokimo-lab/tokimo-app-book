@@ -963,7 +963,7 @@ fn is_vip_stub(content: &str) -> bool {
         "[VIP章节，需要购买后阅读]",
         "[VIP图片章节，需要登录并订阅]",
     ];
-    if VIP_PATTERNS.iter().any(|p| trimmed == *p) {
+    if VIP_PATTERNS.contains(&trimmed) {
         return true;
     }
     // Generic detection: very short content starting with [VIP or containing VIP marker

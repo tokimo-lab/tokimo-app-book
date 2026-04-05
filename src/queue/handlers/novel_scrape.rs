@@ -270,7 +270,7 @@ async fn handle_directory_novel(
     let txn = db.begin().await?;
     txn.execute_raw(Statement::from_sql_and_values(
         DbBackend::Postgres,
-        &format!("SELECT pg_advisory_xact_lock({lock_key})"),
+        format!("SELECT pg_advisory_xact_lock({lock_key})"),
         vec![],
     ))
     .await?;
@@ -401,7 +401,7 @@ async fn handle_single_file_novel(
     let txn = db.begin().await?;
     txn.execute_raw(Statement::from_sql_and_values(
         DbBackend::Postgres,
-        &format!("SELECT pg_advisory_xact_lock({lock_key})"),
+        format!("SELECT pg_advisory_xact_lock({lock_key})"),
         vec![],
     ))
     .await?;
@@ -591,43 +591,38 @@ fn extract_chapter_number(stem: &str) -> (Option<i32>, String) {
     let clean = clean.trim();
 
     // Try Arabic numeral first: 第123章
-    if let Some(caps) = RE_CH_ARABIC.captures(clean) {
-        if let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
+    if let Some(caps) = RE_CH_ARABIC.captures(clean)
+        && let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
             let after = clean[caps.get(0).unwrap().end()..].trim_start().to_string();
             return (Some(n), after);
         }
-    }
 
     // Try Chinese numeral: 第一百零三章
-    if let Some(caps) = RE_CH_CHINESE.captures(clean) {
-        if let Some(n) = caps.get(1).and_then(|m| chinese_num_to_i32(m.as_str())) {
+    if let Some(caps) = RE_CH_CHINESE.captures(clean)
+        && let Some(n) = caps.get(1).and_then(|m| chinese_num_to_i32(m.as_str())) {
             let after = clean[caps.get(0).unwrap().end()..].trim_start().to_string();
             return (Some(n), after);
         }
-    }
 
     // Try English: Chapter 123
-    if let Some(caps) = RE_CH_ENGLISH.captures(clean) {
-        if let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
+    if let Some(caps) = RE_CH_ENGLISH.captures(clean)
+        && let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
             let after = clean[caps.get(0).unwrap().end()..].trim_start().to_string();
             return (Some(n), after);
         }
-    }
 
     // Try leading number: 001 标题
-    if let Some(caps) = RE_CH_LEADING.captures(clean) {
-        if let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
+    if let Some(caps) = RE_CH_LEADING.captures(clean)
+        && let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
             let after = clean[caps.get(0).unwrap().end()..].trim_start().to_string();
             return (Some(n), after);
         }
-    }
 
     // Try bare number: just "001"
-    if let Some(caps) = RE_CH_BARE.captures(clean) {
-        if let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
+    if let Some(caps) = RE_CH_BARE.captures(clean)
+        && let Some(n) = caps.get(1).and_then(|m| m.as_str().parse::<i32>().ok()) {
             return (Some(n), String::new());
         }
-    }
 
     (None, clean.to_string())
 }
@@ -855,14 +850,13 @@ async fn scrape_from_douban(
             continue;
         }
 
-        if !norm_author.is_empty() {
-            if let Some(ref subtitle) = c.original_title {
+        if !norm_author.is_empty()
+            && let Some(ref subtitle) = c.original_title {
                 let cs = normalize_for_matching(subtitle);
                 if cs.contains(&norm_author) || norm_author.contains(&cs) {
                     score += 25;
                 }
             }
-        }
 
         match &best {
             Some((_, bs)) if score <= *bs => {}
@@ -909,8 +903,8 @@ async fn scrape_from_douban(
     update_novel_from_douban(db, novel_id, &book_detail).await?;
 
     // Download and upload cover image
-    if let Some(ref cover_url) = book_detail.cover_url {
-        if !cover_url.is_empty() {
+    if let Some(ref cover_url) = book_detail.cover_url
+        && !cover_url.is_empty() {
             match download_and_upload_cover(state, novel_id, cover_url).await {
                 Ok(cover_path) => {
                     let mut active: novels::ActiveModel = novels::Entity::find_by_id(novel_id)
@@ -927,7 +921,6 @@ async fn scrape_from_douban(
                 }
             }
         }
-    }
 
     info!("[novel_scrape] Douban scrape complete for \"{title}\"");
     Ok(())
@@ -962,7 +955,7 @@ async fn update_novel_from_douban(
     }
     if let Some(ref year) = detail.year {
         // Extract 4-digit year from date string like "2003-8"
-        if let Some(y) = year.chars().take(4).collect::<String>().parse::<i32>().ok() {
+        if let Ok(y) = year.chars().take(4).collect::<String>().parse::<i32>() {
             active.year = Set(Some(y));
         }
     }
@@ -1031,14 +1024,13 @@ async fn scrape_from_qidian(
             continue;
         }
 
-        if !norm_author.is_empty() {
-            if let Some(ref a) = c.author {
+        if !norm_author.is_empty()
+            && let Some(ref a) = c.author {
                 let ca = normalize_for_matching(a);
                 if ca == norm_author || ca.contains(&norm_author) || norm_author.contains(&ca) {
                     score += 25;
                 }
             }
-        }
 
         match &best {
             Some((_, bs)) if score <= *bs => {}
@@ -1091,10 +1083,10 @@ async fn scrape_from_qidian(
 
     // If no cover yet, try Qidian cover
     let novel = novels::Entity::find_by_id(novel_id).one(db).await?;
-    if let Some(novel) = novel {
-        if novel.cover_path.is_none() {
-            if let Some(ref cover_url) = book_detail.cover_url {
-                if !cover_url.is_empty() {
+    if let Some(novel) = novel
+        && novel.cover_path.is_none()
+            && let Some(ref cover_url) = book_detail.cover_url
+                && !cover_url.is_empty() {
                     match download_and_upload_cover(state, novel_id, cover_url).await {
                         Ok(cover_path) => {
                             let mut active: novels::ActiveModel = novel.into();
@@ -1109,9 +1101,6 @@ async fn scrape_from_qidian(
                         }
                     }
                 }
-            }
-        }
-    }
 
     info!("[novel_scrape] Qidian scrape complete for \"{title}\"");
     Ok(())
@@ -1133,29 +1122,24 @@ async fn update_novel_from_qidian(
     active.qidian_id = Set(Some(detail.qidian_id.clone()));
 
     // Only fill empty fields — don't overwrite Douban data
-    if novel.author.is_none() {
-        if let Some(ref author) = detail.author {
+    if novel.author.is_none()
+        && let Some(ref author) = detail.author {
             active.author = Set(Some(author.clone()));
         }
-    }
-    if novel.overview.is_none() {
-        if let Some(ref intro) = detail.intro {
+    if novel.overview.is_none()
+        && let Some(ref intro) = detail.intro {
             active.overview = Set(Some(intro.clone()));
         }
-    }
-    if novel.serial_status.is_none() {
-        if let Some(ref status) = detail.serial_status {
+    if novel.serial_status.is_none()
+        && let Some(ref status) = detail.serial_status {
             let normalized = normalize_serial_status(status);
             active.serial_status = Set(Some(normalized));
         }
-    }
-    if novel.word_count.is_none() {
-        if let Some(ref wc) = detail.word_count {
-            if let Some(count) = parse_word_count(wc) {
+    if novel.word_count.is_none()
+        && let Some(ref wc) = detail.word_count
+            && let Some(count) = parse_word_count(wc) {
                 active.word_count = Set(Some(count));
             }
-        }
-    }
 
     active.updated_at = Set(Some(chrono::Utc::now().fixed_offset()));
     active.update(db).await?;
@@ -1176,24 +1160,20 @@ async fn update_novel_from_qidian_search(
 
     active.qidian_id = Set(Some(item.qidian_id.clone()));
 
-    if novel.author.is_none() {
-        if let Some(ref author) = item.author {
+    if novel.author.is_none()
+        && let Some(ref author) = item.author {
             active.author = Set(Some(author.clone()));
         }
-    }
-    if novel.serial_status.is_none() {
-        if let Some(ref status) = item.serial_status {
+    if novel.serial_status.is_none()
+        && let Some(ref status) = item.serial_status {
             let normalized = normalize_serial_status(status);
             active.serial_status = Set(Some(normalized));
         }
-    }
-    if novel.word_count.is_none() {
-        if let Some(ref wc) = item.word_count {
-            if let Some(count) = parse_word_count(wc) {
+    if novel.word_count.is_none()
+        && let Some(ref wc) = item.word_count
+            && let Some(count) = parse_word_count(wc) {
                 active.word_count = Set(Some(count));
             }
-        }
-    }
 
     active.updated_at = Set(Some(chrono::Utc::now().fixed_offset()));
     active.update(db).await?;

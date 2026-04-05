@@ -87,15 +87,14 @@ impl NovelRepo {
         let mut params: Vec<sea_orm::Value> = vec![app_id.into()];
         let mut param_idx = 2u32;
 
-        if let Some(s) = search {
-            if !s.is_empty() {
+        if let Some(s) = search
+            && !s.is_empty() {
                 where_clauses.push(format!(
                     "(n.title ILIKE ${param_idx} OR n.author ILIKE ${param_idx})"
                 ));
                 params.push(format!("%{s}%").into());
                 param_idx += 1;
             }
-        }
 
         let where_sql = where_clauses.join(" AND ");
 
