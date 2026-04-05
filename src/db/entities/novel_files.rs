@@ -4,52 +4,51 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "novel_chapters")]
+#[sea_orm(table_name = "novel_files")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique_key = "novel_chapters_novel_id_chapter_number_key")]
-    pub novel_id: Uuid,
-    pub volume_id: Option<Uuid>,
-    #[sea_orm(unique_key = "novel_chapters_novel_id_chapter_number_key")]
-    pub chapter_number: i32,
+    #[sea_orm(unique_key = "novel_files_source_id_path_key")]
+    pub source_id: Option<Uuid>,
+    #[sea_orm(column_type = "Text", unique_key = "novel_files_source_id_path_key")]
+    pub path: String,
+    #[sea_orm(column_type = "Text")]
+    pub filename: String,
+    pub size: Option<i64>,
     #[sea_orm(column_type = "Text", nullable)]
-    pub title: Option<String>,
-    pub word_count: Option<i32>,
+    pub mime_type: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
-    pub file_path: Option<String>,
-    pub is_vip: bool,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub source_chapter_id: Option<String>,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub source_url: Option<String>,
+    pub checksum: Option<String>,
+    pub is_available: bool,
+    pub scanned_at: Option<DateTimeWithTimeZone>,
     pub created_at: Option<DateTimeWithTimeZone>,
     pub updated_at: Option<DateTimeWithTimeZone>,
+    pub novel_id: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::novel_volumes::Entity",
-        from = "Column::VolumeId",
-        to = "super::novel_volumes::Column::Id",
+        belongs_to = "super::file_systems::Entity",
+        from = "Column::SourceId",
+        to = "super::file_systems::Column::Id",
         on_update = "Cascade",
-        on_delete = "SetNull"
+        on_delete = "Cascade"
     )]
-    NovelVolumes,
+    FileSystems,
     #[sea_orm(
         belongs_to = "super::novels::Entity",
         from = "Column::NovelId",
         to = "super::novels::Column::Id",
         on_update = "Cascade",
-        on_delete = "Cascade"
+        on_delete = "SetNull"
     )]
     Novels,
 }
 
-impl Related<super::novel_volumes::Entity> for Entity {
+impl Related<super::file_systems::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::NovelVolumes.def()
+        Relation::FileSystems.def()
     }
 }
 

@@ -4,7 +4,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::db::entities::{app_file_systems, media_files, novel_chapters, novel_volumes, novels};
+use crate::db::entities::{app_file_systems, novel_files, novel_chapters, novel_volumes, novels};
 use crate::error::AppError;
 use crate::error::OptionExt;
 
@@ -224,13 +224,13 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get media files linked to a novel.
+    /// Get files linked to a novel.
     pub async fn get_novel_files(
         db: &DatabaseConnection,
         novel_id: Uuid,
-    ) -> Result<Vec<media_files::Model>, AppError> {
-        Ok(media_files::Entity::find()
-            .filter(media_files::Column::NovelId.eq(novel_id))
+    ) -> Result<Vec<novel_files::Model>, AppError> {
+        Ok(novel_files::Entity::find()
+            .filter(novel_files::Column::NovelId.eq(novel_id))
             .all(db)
             .await?)
     }

@@ -22,7 +22,7 @@ use tokio::time::Duration;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use crate::db::entities::{media_files, novel_chapters, novels};
+use crate::db::entities::{novel_files, novel_chapters, novels};
 use crate::db::repos::config_repo::{ConfigRepo, DoubanSettings};
 use crate::services::storage::UploadOptions;
 use crate::AppState;
@@ -379,9 +379,9 @@ async fn handle_single_file_novel(
     }
 
     // ── Early dedup by file path ──
-    let mf_exists = media_files::Entity::find()
-        .filter(media_files::Column::SourceId.eq(source_uuid))
-        .filter(media_files::Column::Path.eq(file_path))
+    let mf_exists = novel_files::Entity::find()
+        .filter(novel_files::Column::SourceId.eq(source_uuid))
+        .filter(novel_files::Column::Path.eq(file_path))
         .one(db)
         .await?;
     if mf_exists.is_some() {
@@ -413,9 +413,9 @@ async fn handle_single_file_novel(
         .await?;
 
     if let Some(existing_novel) = existing {
-        let mf_exists = media_files::Entity::find()
-            .filter(media_files::Column::SourceId.eq(source_uuid))
-            .filter(media_files::Column::Path.eq(file_path))
+        let mf_exists = novel_files::Entity::find()
+            .filter(novel_files::Column::SourceId.eq(source_uuid))
+            .filter(novel_files::Column::Path.eq(file_path))
             .one(&txn)
             .await?;
         if mf_exists.is_some() {
@@ -714,7 +714,7 @@ async fn insert_novel_media_file(
         .and_then(|e| e.to_str())
         .unwrap_or("");
     let mime = novel_mime(ext);
-    let model = media_files::ActiveModel {
+    let model = novel_files::ActiveModel {
         id: Set(mf_id),
         source_id: Set(Some(source_uuid)),
         path: Set(file_path.to_string()),
@@ -727,7 +727,7 @@ async fn insert_novel_media_file(
         updated_at: Set(Some(now)),
         ..Default::default()
     };
-    media_files::Entity::insert(model).exec(db).await?;
+    novel_files::Entity::insert(model).exec(db).await?;
     Ok(())
 }
 
