@@ -23,7 +23,8 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::db::entities::{novel_files, novel_chapters, novels};
-use crate::db::repos::config_repo::{ConfigRepo, DoubanSettings};
+use crate::config::DoubanSettings;
+use crate::db::repos::system_config_repo::SystemConfigRepo;
 use crate::services::storage::UploadOptions;
 use crate::AppState;
 
@@ -731,7 +732,7 @@ async fn create_douban_client(
     db: &DatabaseConnection,
     http_client: reqwest::Client,
 ) -> Option<DoubanClient> {
-    let settings = ConfigRepo::get::<DoubanSettings>(db).await.ok()?;
+    let settings = SystemConfigRepo::get::<DoubanSettings>(db).await.ok()?;
     if settings.cookie.is_none() && settings.api_key.is_none() {
         // Scraping mode (no cookie) still works for book detail pages
         return Some(DoubanClient::new(DoubanConfig {
