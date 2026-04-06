@@ -76,8 +76,6 @@ pub enum Relation {
     Apps,
     #[sea_orm(has_many = "super::media_arts::Entity")]
     MediaArts,
-    #[sea_orm(has_many = "super::media_credits::Entity")]
-    MediaCredits,
     #[sea_orm(has_many = "super::novel_chapters::Entity")]
     NovelChapters,
     #[sea_orm(has_many = "super::novel_collections::Entity")]
@@ -103,12 +101,6 @@ impl Related<super::apps::Entity> for Entity {
 impl Related<super::media_arts::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::MediaArts.def()
-    }
-}
-
-impl Related<super::media_credits::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::MediaCredits.def()
     }
 }
 
