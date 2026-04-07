@@ -4,7 +4,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::db::entities::{app_file_systems, novel_files, novel_chapters, novel_volumes, novels};
+use crate::db::entities::{app_vfs, novel_files, novel_chapters, novel_volumes, novels};
 use crate::error::AppError;
 use crate::error::OptionExt;
 
@@ -237,9 +237,9 @@ impl NovelRepo {
     pub async fn get_app_source(
         db: &DatabaseConnection,
         app_id: Uuid,
-    ) -> Result<Option<app_file_systems::Model>, AppError> {
-        Ok(app_file_systems::Entity::find()
-            .filter(app_file_systems::Column::AppId.eq(app_id))
+    ) -> Result<Option<app_vfs::Model>, AppError> {
+        Ok(app_vfs::Entity::find()
+            .filter(app_vfs::Column::AppId.eq(app_id))
             .one(db)
             .await?)
     }

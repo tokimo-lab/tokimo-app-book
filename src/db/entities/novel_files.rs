@@ -29,14 +29,6 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::file_systems::Entity",
-        from = "Column::SourceId",
-        to = "super::file_systems::Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
-    FileSystems,
-    #[sea_orm(
         belongs_to = "super::novels::Entity",
         from = "Column::NovelId",
         to = "super::novels::Column::Id",
@@ -44,17 +36,25 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     Novels,
-}
-
-impl Related<super::file_systems::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::FileSystems.def()
-    }
+    #[sea_orm(
+        belongs_to = "super::vfs::Entity",
+        from = "Column::SourceId",
+        to = "super::vfs::Column::Id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
+    )]
+    Vfs,
 }
 
 impl Related<super::novels::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Novels.def()
+    }
+}
+
+impl Related<super::vfs::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Vfs.def()
     }
 }
 
