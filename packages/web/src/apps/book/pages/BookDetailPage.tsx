@@ -134,7 +134,7 @@ function FavoriteButton({
   bookId: string;
 }) {
   const qc = useQueryClient();
-  const toggle = api.app.toggleFavorite.useMutation({
+  const toggle = api.video.toggleFavorite.useMutation({
     onSuccess: () => void api.book.getItemDetail.invalidate(qc, { id: bookId }),
   });
 
