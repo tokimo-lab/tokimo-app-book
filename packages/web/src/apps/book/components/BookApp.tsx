@@ -15,7 +15,7 @@ const LoadingFallback = (
 );
 
 export default function BookApp() {
-  const { LazyViewComponent, route, navigate } = useWindowNav();
+  const { LazyViewComponent, route, navigate, updateTitle } = useWindowNav();
   const { data: libraries, isLoading } = api.book.list.useQuery();
   const [containerRef, containerWidth] = useContainerWidth();
   const sidebarCollapsed = containerWidth > 0 && containerWidth < 720;
@@ -31,6 +31,14 @@ export default function BookApp() {
     setActiveLibraryId(id);
     localStorage.setItem(STORAGE_KEY, id);
   }, [libraries]);
+
+  const activeLibrary = libraries?.find((l) => l.id === activeLibraryId);
+
+  useEffect(() => {
+    if (route === "/" && activeLibrary) {
+      updateTitle(`TokimoBook · ${activeLibrary.name}`);
+    }
+  }, [route, activeLibrary, updateTitle]);
 
   const handleSelectLibrary = (id: string) => {
     setActiveLibraryId(id);
@@ -56,7 +64,6 @@ export default function BookApp() {
     );
   }
 
-  const activeLibrary = libraries.find((l) => l.id === activeLibraryId);
   const isDetailPage = route !== "/" && LazyViewComponent;
 
   return (

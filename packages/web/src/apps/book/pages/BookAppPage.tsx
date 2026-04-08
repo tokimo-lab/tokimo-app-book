@@ -227,7 +227,7 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
 
   const handleItemClick = useCallback(
     (item: BookOutput) => {
-      navigate(`/books/${item.id}`, item.title ?? "Book");
+      navigate(`/books/${item.id}`, `TokimoBook · ${item.title ?? "Book"}`);
     },
     [navigate],
   );
