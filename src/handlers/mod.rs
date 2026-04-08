@@ -1,6 +1,7 @@
 pub mod browse;
 pub mod crud;
 pub mod download;
+pub mod sync;
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -15,6 +16,7 @@ use crate::error::AppError;
 pub use browse::*;
 pub use crud::*;
 pub use download::*;
+pub use sync::*;
 
 // ── Container input DTOs ──
 
@@ -66,6 +68,12 @@ pub struct NovelReorderInput {
 pub struct NovelReorderItem {
     pub id: String,
     pub sort_order: i32,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NovelSyncInput {
+    pub clear_data: Option<bool>,
 }
 
 // ── Item-level DTOs (ts-rs exported) ──

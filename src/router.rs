@@ -16,6 +16,11 @@ pub fn build_novel_app_routes() -> Router<Arc<AppState>> {
             get(handlers::list_novels).post(handlers::create_novel),
         )
         .route("/api/apps/novel/reorder", post(handlers::reorder_novels))
+        // Sync
+        .route(
+            "/api/apps/novel/sync-statuses",
+            get(handlers::get_all_novel_sync_statuses),
+        )
         // Download / search (must come before /{id})
         .route(
             "/api/apps/novel/providers",
@@ -49,5 +54,13 @@ pub fn build_novel_app_routes() -> Router<Arc<AppState>> {
         .route(
             "/api/apps/novel/{id}/items",
             get(handlers::list_novel_items),
+        )
+        .route(
+            "/api/apps/novel/{id}/sync",
+            post(handlers::sync_novel),
+        )
+        .route(
+            "/api/apps/novel/{id}/sync-status",
+            get(handlers::get_novel_sync_status),
         )
 }

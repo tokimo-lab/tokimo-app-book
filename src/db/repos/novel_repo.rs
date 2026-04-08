@@ -2,6 +2,7 @@ use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
     EntityTrait, Order, QueryFilter, QueryOrder, Set, Statement,
+    prelude::DateTimeWithTimeZone,
     sea_query::Expr,
 };
 use uuid::Uuid;
@@ -191,6 +192,26 @@ impl NovelRepo {
                 .exec(db)
                 .await?;
         }
+        Ok(())
+    }
+
+    pub async fn update_sync_status(
+        db: &DatabaseConnection,
+        id: Uuid,
+        status: &str,
+        last_sync_at: Option<DateTimeWithTimeZone>,
+    ) -> Result<(), AppError> {
+        let model = novels::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .not_found(format!("novel {id} not found"))?;
+        let mut active: novels::ActiveModel = model.into();
+        active.sync_status = Set(status.to_string());
+        if let Some(ts) = last_sync_at {
+            active.last_sync_at = Set(Some(ts));
+        }
+        active.updated_at = Set(Some(Utc::now().fixed_offset()));
+        active.update(db).await?;
         Ok(())
     }
 

@@ -17,7 +17,7 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
   const [syncClearData, setSyncClearData] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
 
-  const syncMut = api.app.sync.useMutation({
+  const syncMut = api.novel.sync.useMutation({
     onSuccess: () => {
       message.success("同步已开始");
       setSyncModalOpen(false);

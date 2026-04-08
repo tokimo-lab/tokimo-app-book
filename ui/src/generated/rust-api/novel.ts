@@ -150,4 +150,25 @@ export const novelApi = {
   >({
     path: "/api/apps/novel/book-info",
   }),
+
+  // Sync
+  sync: createPathMutation<
+    { id: string; clearData?: boolean },
+    { success: boolean }
+  >({
+    method: "POST",
+    pathFn: (input) => `/api/apps/novel/${encodeURIComponent(input.id)}/sync`,
+    bodyFn: (input) => {
+      const { id: _id, ...body } = input;
+      return body;
+    },
+  }),
+  getSyncStatus: createQuery<
+    { id: string },
+    { novelId: string; status: string; lastSyncAt: string | null }
+  >({
+    path: "/api/apps/novel/{id}/sync-status",
+    pathFn: (input) =>
+      `/api/apps/novel/${encodeURIComponent(input.id)}/sync-status`,
+  }),
 } as const;
