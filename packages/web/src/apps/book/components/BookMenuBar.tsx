@@ -69,7 +69,8 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
       search: {
         appId: bookId,
         searchType: "book" as const,
-        onSelect: (item) => navigate(`/books/${item.id}`, item.title ?? "Book"),
+        onSelect: (item) =>
+          navigate(`/books/${item.id}`, `TokimoBook · ${item.title ?? "Book"}`),
       },
     };
   }, [bookId, qc, syncMut.isPending, navigate]);
