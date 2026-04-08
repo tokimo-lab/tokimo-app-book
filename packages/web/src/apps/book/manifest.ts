@@ -18,4 +18,9 @@ export const manifest: AppManifest = {
     "/": () => import("./components/BookApp"),
     "/books/:bookId": () => import("./pages/BookDetailPage"),
   },
+
+  userSettings: {
+    order: 12,
+    libraryDomain: "book",
+  },
 };
