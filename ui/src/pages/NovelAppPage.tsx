@@ -171,9 +171,9 @@ export default function NovelAppPage() {
 
   const sortParams = parseSortValue(sortValue);
 
-  const novelsQuery = api.novel.listNovels.useQuery(
+  const novelsQuery = api.novel.listItems.useQuery(
     {
-      appId: id!,
+      id: id!,
       page,
       pageSize,
       sortBy: sortParams.sortBy,

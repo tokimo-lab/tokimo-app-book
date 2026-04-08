@@ -1,18 +1,20 @@
+use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
-    EntityTrait, Order, QueryFilter, QueryOrder, Set, Statement,
+    EntityTrait, Order, PaginatorTrait, QueryFilter, QueryOrder, Set, Statement,
+    sea_query::Expr,
 };
 use uuid::Uuid;
 
-use crate::db::entities::{app_vfs, novel_files, novel_chapters, novel_volumes, novels};
+use crate::db::entities::{novel_chapters, novel_files, novel_items, novel_volumes, novels};
 use crate::error::AppError;
 use crate::error::OptionExt;
 
-// ── Input structs ────────────────────────────────────────────────────────────
+// ── Item input structs ──────────────────────────────────────────────────────
 
-pub struct CreateNovelInput {
+pub struct CreateNovelItemInput {
     pub id: Uuid,
-    pub app_id: Uuid,
+    pub novel_id: Uuid,
     pub title: String,
     pub author: Option<String>,
     pub overview: Option<String>,
@@ -42,6 +44,21 @@ pub struct InsertChapterInput {
     pub is_vip: bool,
 }
 
+// ── Container update fields ──
+
+#[derive(Debug)]
+pub struct UpdateNovelContainerFields {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+    pub color: Option<Option<String>>,
+    pub poster_path: Option<String>,
+    pub scrape_enabled: Option<bool>,
+    pub scrape_agents: Option<Vec<String>>,
+    pub settings: Option<serde_json::Value>,
+    pub sources: Option<serde_json::Value>,
+}
+
 // ── Helpers ──
 
 fn col<T: sea_orm::TryGetable>(r: &sea_orm::QueryResult, c: &str) -> Result<T, AppError> {
@@ -64,10 +81,164 @@ fn dir(d: &str) -> &'static str {
 pub struct NovelRepo;
 
 impl NovelRepo {
-    /// Paginated novel list for an app, with chapter/volume counts.
-    pub async fn list_novels(
+    // ── Container (novels table) methods ─────────────────────────────────
+
+    pub async fn list_containers(
         db: &DatabaseConnection,
-        app_id: Uuid,
+    ) -> Result<Vec<novels::Model>, AppError> {
+        let rows = novels::Entity::find()
+            .order_by_asc(novels::Column::SortOrder)
+            .order_by_asc(novels::Column::CreatedAt)
+            .all(db)
+            .await?;
+        Ok(rows)
+    }
+
+    pub async fn get_container_by_id(
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> Result<Option<novels::Model>, AppError> {
+        Ok(novels::Entity::find_by_id(id).one(db).await?)
+    }
+
+    pub async fn create_container(
+        db: &DatabaseConnection,
+        name: String,
+        novel_type: String,
+        settings: Option<serde_json::Value>,
+    ) -> Result<novels::Model, AppError> {
+        let id = Uuid::new_v4();
+        let now = Utc::now().fixed_offset();
+        let max_sort = novels::Entity::find()
+            .order_by_desc(novels::Column::SortOrder)
+            .one(db)
+            .await?
+            .map_or(0, |m| m.sort_order);
+
+        let active = novels::ActiveModel {
+            id: Set(id),
+            name: Set(name),
+            r#type: Set(novel_type),
+            sort_order: Set(max_sort + 1),
+            settings: Set(settings),
+            sources: Set(serde_json::json!([])),
+            created_at: Set(Some(now)),
+            updated_at: Set(Some(now)),
+            ..Default::default()
+        };
+        novels::Entity::insert(active).exec(db).await?;
+        novels::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .internal("failed to fetch created novel container")
+    }
+
+    pub async fn update_container(
+        db: &DatabaseConnection,
+        id: Uuid,
+        input: UpdateNovelContainerFields,
+    ) -> Result<novels::Model, AppError> {
+        let model = novels::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .not_found(format!("novel {id} not found"))?;
+        let mut active: novels::ActiveModel = model.into();
+        if let Some(name) = input.name {
+            active.name = Set(name);
+        }
+        if let Some(description) = input.description {
+            active.description = Set(Some(description));
+        }
+        if let Some(icon) = input.icon {
+            active.icon = Set(Some(icon));
+        }
+        if let Some(color) = input.color {
+            active.color = Set(color);
+        }
+        if let Some(poster_path) = input.poster_path {
+            active.poster_path = Set(Some(poster_path));
+        }
+        if let Some(scrape_enabled) = input.scrape_enabled {
+            active.scrape_enabled = Set(scrape_enabled);
+        }
+        if let Some(scrape_agents) = input.scrape_agents {
+            active.scrape_agents = Set(scrape_agents);
+        }
+        if let Some(settings) = input.settings {
+            active.settings = Set(Some(settings));
+        }
+        if let Some(sources) = input.sources {
+            active.sources = Set(sources);
+        }
+        active.updated_at = Set(Some(Utc::now().fixed_offset()));
+        let updated = active.update(db).await?;
+        Ok(updated)
+    }
+
+    pub async fn delete_container(db: &DatabaseConnection, id: Uuid) -> Result<u64, AppError> {
+        let result = novels::Entity::delete_by_id(id).exec(db).await?;
+        Ok(result.rows_affected)
+    }
+
+    pub async fn reorder_containers(
+        db: &DatabaseConnection,
+        orders: Vec<(Uuid, i32)>,
+    ) -> Result<(), AppError> {
+        for (id, sort_order) in orders {
+            novels::Entity::update_many()
+                .filter(novels::Column::Id.eq(id))
+                .col_expr(novels::Column::SortOrder, Expr::value(sort_order))
+                .exec(db)
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// Parse sources JSON from the container. Returns `(source_id, root_path, is_default_download)`.
+    pub fn parse_sources(sources_json: &serde_json::Value) -> Vec<(Uuid, String, bool)> {
+        sources_json
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|item| {
+                        let source_id = item
+                            .get("sourceId")
+                            .and_then(|v| v.as_str())
+                            .and_then(|s| s.parse::<Uuid>().ok())?;
+                        let root_path = item
+                            .get("rootPath")
+                            .and_then(|v| v.as_str())
+                            .map(std::string::ToString::to_string)?;
+                        let is_default = item
+                            .get("isDefaultDownload")
+                            .and_then(serde_json::Value::as_bool)
+                            .unwrap_or(false);
+                        Some((source_id, root_path, is_default))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// Get the first source for a novel container (source_id, root_path).
+    pub async fn get_novel_source(
+        db: &DatabaseConnection,
+        novel_id: Uuid,
+    ) -> Result<Option<(Uuid, String)>, AppError> {
+        let container = novels::Entity::find_by_id(novel_id).one(db).await?;
+        let Some(container) = container else {
+            return Ok(None);
+        };
+        let sources = Self::parse_sources(&container.sources);
+        Ok(sources.first().map(|(sid, rp, _)| (*sid, rp.clone())))
+    }
+
+    // ── Item (novel_items table) methods ─────────────────────────────────
+
+    /// Paginated novel item list for a container, with chapter/volume counts.
+    pub async fn list_items(
+        db: &DatabaseConnection,
+        novel_id: Uuid,
         page: i64,
         page_size: i64,
         sort_by: &str,
@@ -83,23 +254,24 @@ impl NovelRepo {
         };
         let order_dir = dir(sort_dir);
 
-        let mut where_clauses = vec!["n.app_id = $1".to_string()];
-        let mut params: Vec<sea_orm::Value> = vec![app_id.into()];
+        let mut where_clauses = vec!["n.novel_id = $1".to_string()];
+        let mut params: Vec<sea_orm::Value> = vec![novel_id.into()];
         let mut param_idx = 2u32;
 
         if let Some(s) = search
-            && !s.is_empty() {
-                where_clauses.push(format!(
-                    "(n.title ILIKE ${param_idx} OR n.author ILIKE ${param_idx})"
-                ));
-                params.push(format!("%{s}%").into());
-                param_idx += 1;
-            }
+            && !s.is_empty()
+        {
+            where_clauses.push(format!(
+                "(n.title ILIKE ${param_idx} OR n.author ILIKE ${param_idx})"
+            ));
+            params.push(format!("%{s}%").into());
+            param_idx += 1;
+        }
 
         let where_sql = where_clauses.join(" AND ");
 
         // Count
-        let count_sql = format!("SELECT COUNT(*) as cnt FROM novels n WHERE {where_sql}");
+        let count_sql = format!("SELECT COUNT(*) as cnt FROM novel_items n WHERE {where_sql}");
         let count_stmt =
             Statement::from_sql_and_values(DatabaseBackend::Postgres, &count_sql, params.clone());
         let total: i64 = db
@@ -116,7 +288,7 @@ impl NovelRepo {
                       n.scraped_at::text as scraped_at, n.created_at,
                       (SELECT COUNT(*) FROM novel_chapters nc WHERE nc.novel_id = n.id) as chapter_count,
                       (SELECT COUNT(*) FROM novel_volumes nv WHERE nv.novel_id = n.id) as volume_count
-               FROM novels n
+               FROM novel_items n
                WHERE {where_sql}
                ORDER BY {order_col} {order_dir} NULLS LAST
                LIMIT ${limit_param} OFFSET ${offset_param}"
@@ -154,15 +326,15 @@ impl NovelRepo {
         Ok((items, total))
     }
 
-    /// Get a single novel by ID.
-    pub async fn get_by_id(
+    /// Get a single novel item by ID.
+    pub async fn get_item_by_id(
         db: &DatabaseConnection,
         id: Uuid,
-    ) -> Result<Option<novels::Model>, AppError> {
-        Ok(novels::Entity::find_by_id(id).one(db).await?)
+    ) -> Result<Option<novel_items::Model>, AppError> {
+        Ok(novel_items::Entity::find_by_id(id).one(db).await?)
     }
 
-    /// Get all volumes for a novel, ordered by `volume_number`.
+    /// Get all volumes for a novel item, ordered by `volume_number`.
     pub async fn get_volumes(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -174,7 +346,7 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get all chapters for a novel, ordered by `chapter_number`.
+    /// Get all chapters for a novel item, ordered by `chapter_number`.
     pub async fn get_chapters(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -194,7 +366,7 @@ impl NovelRepo {
         Ok(novel_chapters::Entity::find_by_id(id).one(db).await?)
     }
 
-    /// Get the previous chapter (by `chapter_number`) within the same novel.
+    /// Get the previous chapter (by `chapter_number`) within the same novel item.
     pub async fn get_prev_chapter(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -208,7 +380,7 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get the next chapter (by `chapter_number`) within the same novel.
+    /// Get the next chapter (by `chapter_number`) within the same novel item.
     pub async fn get_next_chapter(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -222,7 +394,7 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get files linked to a novel.
+    /// Get files linked to a novel item.
     pub async fn get_novel_files(
         db: &DatabaseConnection,
         novel_id: Uuid,
@@ -233,23 +405,15 @@ impl NovelRepo {
             .await?)
     }
 
-    /// Get the first `app_file_system` source for an app.
-    pub async fn get_app_source(
+    /// Insert a new novel item record.
+    pub async fn create_item(
         db: &DatabaseConnection,
-        app_id: Uuid,
-    ) -> Result<Option<app_vfs::Model>, AppError> {
-        Ok(app_vfs::Entity::find()
-            .filter(app_vfs::Column::AppId.eq(app_id))
-            .one(db)
-            .await?)
-    }
-
-    /// Insert a new novel record.
-    pub async fn create(db: &DatabaseConnection, input: CreateNovelInput) -> Result<(), AppError> {
+        input: CreateNovelItemInput,
+    ) -> Result<(), AppError> {
         let now = chrono::Utc::now().fixed_offset();
-        let active = novels::ActiveModel {
+        let active = novel_items::ActiveModel {
             id: Set(input.id),
-            app_id: Set(input.app_id),
+            novel_id: Set(input.novel_id),
             title: Set(input.title),
             author: Set(input.author),
             overview: Set(input.overview),
@@ -262,22 +426,22 @@ impl NovelRepo {
             updated_at: Set(Some(now)),
             ..Default::default()
         };
-        novels::Entity::insert(active).exec(db).await?;
+        novel_items::Entity::insert(active).exec(db).await?;
         Ok(())
     }
 
-    /// Update the cover image path for a novel.
+    /// Update the cover image path for a novel item.
     pub async fn update_cover_path(
         db: &DatabaseConnection,
         novel_id: Uuid,
         path: String,
     ) -> Result<(), AppError> {
         let now = chrono::Utc::now().fixed_offset();
-        let model = novels::Entity::find_by_id(novel_id)
+        let model = novel_items::Entity::find_by_id(novel_id)
             .one(db)
             .await?
             .not_found("Novel not found")?;
-        let mut active: novels::ActiveModel = model.into();
+        let mut active: novel_items::ActiveModel = model.into();
         active.cover_path = Set(Some(path));
         active.updated_at = Set(Some(now));
         active.update(db).await?;

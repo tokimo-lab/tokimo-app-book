@@ -139,7 +139,7 @@ function FavoriteButton({
   const qc = useQueryClient();
   const toggle = api.app.toggleFavorite.useMutation({
     onSuccess: () =>
-      void api.novel.getNovelDetail.invalidate(qc, { id: novelId }),
+      void api.novel.getItemDetail.invalidate(qc, { id: novelId }),
   });
 
   return (
@@ -163,7 +163,7 @@ export default function NovelDetailPage() {
   const id = metadata.appId as string | undefined;
   const novelId = params.novelId;
 
-  const detailQuery = api.novel.getNovelDetail.useQuery(
+  const detailQuery = api.novel.getItemDetail.useQuery(
     { id: novelId! },
     { enabled: !!novelId },
   );

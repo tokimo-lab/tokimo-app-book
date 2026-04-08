@@ -22,7 +22,7 @@ use tokio::time::Duration;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use crate::db::entities::{novel_files, novel_chapters, novels};
+use crate::db::entities::{novel_files, novel_chapters, novel_items};
 use crate::config::DoubanSettings;
 use crate::db::repos::system_config_repo::SystemConfigRepo;
 use crate::services::storage::UploadOptions;
@@ -203,22 +203,23 @@ pub async fn handle(
     _job_id: Uuid,
     payload: &JsonValue,
 ) -> Result<Option<JsonValue>, BoxError> {
-    let app_id = payload
-        .get("appId")
+    let novel_id = payload
+        .get("novelId")
+        .or_else(|| payload.get("appId"))
         .and_then(|v| v.as_str())
-        .ok_or("Missing appId")?;
+        .ok_or("Missing novelId")?;
     let source_id = payload
         .get("sourceId")
         .and_then(|v| v.as_str())
         .ok_or("Missing sourceId")?;
-    let app_uuid = Uuid::parse_str(app_id)?;
+    let novel_uuid = Uuid::parse_str(novel_id)?;
     let source_uuid = Uuid::parse_str(source_id)?;
 
     // Dispatch: directory mode (chapterFiles present) vs single-file mode
     if let Some(chapter_files) = payload.get("chapterFiles").and_then(|v| v.as_array()) {
-        handle_directory_novel(db, state, payload, app_uuid, source_uuid, chapter_files).await
+        handle_directory_novel(db, state, payload, novel_uuid, source_uuid, chapter_files).await
     } else {
-        handle_single_file_novel(db, state, payload, app_uuid, source_uuid).await
+        handle_single_file_novel(db, state, payload, novel_uuid, source_uuid).await
     }
 }
 
@@ -228,7 +229,7 @@ async fn handle_directory_novel(
     db: &DatabaseConnection,
     state: &Arc<AppState>,
     payload: &JsonValue,
-    app_uuid: Uuid,
+    novel_uuid: Uuid,
     _source_uuid: Uuid,
     chapter_files: &[JsonValue],
 ) -> Result<Option<JsonValue>, BoxError> {
@@ -264,7 +265,7 @@ async fn handle_directory_novel(
     // ── Idempotency check with advisory lock ──
     let lock_key = {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        (app_uuid, &title).hash(&mut hasher);
+        (novel_uuid, &title).hash(&mut hasher);
         hasher.finish() as i64
     };
 
@@ -276,9 +277,9 @@ async fn handle_directory_novel(
     ))
     .await?;
 
-    let existing = novels::Entity::find()
-        .filter(novels::Column::AppId.eq(app_uuid))
-        .filter(novels::Column::Title.eq(&title))
+    let existing = novel_items::Entity::find()
+        .filter(novel_items::Column::NovelId.eq(novel_uuid))
+        .filter(novel_items::Column::Title.eq(&title))
         .one(&txn)
         .await?;
 
@@ -313,16 +314,16 @@ async fn handle_directory_novel(
         // Create new novel
         let novel_id = Uuid::new_v4();
         let now = chrono::Utc::now().fixed_offset();
-        let novel = novels::ActiveModel {
+        let novel = novel_items::ActiveModel {
             id: Set(novel_id),
-            app_id: Set(app_uuid),
+            novel_id: Set(novel_uuid),
             title: Set(title.clone()),
             author: Set(parsed.author.clone()),
             created_at: Set(Some(now)),
             updated_at: Set(Some(now)),
             ..Default::default()
         };
-        novels::Entity::insert(novel).exec(&txn).await?;
+        novel_items::Entity::insert(novel).exec(&txn).await?;
 
         // Insert all chapter records
         for ch in &chapters {
@@ -353,7 +354,7 @@ async fn handle_single_file_novel(
     db: &DatabaseConnection,
     state: &Arc<AppState>,
     payload: &JsonValue,
-    app_uuid: Uuid,
+    novel_uuid: Uuid,
     source_uuid: Uuid,
 ) -> Result<Option<JsonValue>, BoxError> {
     let file_path = payload
@@ -395,7 +396,7 @@ async fn handle_single_file_novel(
     // ── Idempotency check ──
     let lock_key = {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        (app_uuid, &title).hash(&mut hasher);
+        (novel_uuid, &title).hash(&mut hasher);
         hasher.finish() as i64
     };
 
@@ -407,9 +408,9 @@ async fn handle_single_file_novel(
     ))
     .await?;
 
-    let existing = novels::Entity::find()
-        .filter(novels::Column::AppId.eq(app_uuid))
-        .filter(novels::Column::Title.eq(&title))
+    let existing = novel_items::Entity::find()
+        .filter(novel_items::Column::NovelId.eq(novel_uuid))
+        .filter(novel_items::Column::Title.eq(&title))
         .one(&txn)
         .await?;
 
@@ -445,16 +446,16 @@ async fn handle_single_file_novel(
     // ── Create new Novel ──
     let novel_id = Uuid::new_v4();
     let now = chrono::Utc::now().fixed_offset();
-    let novel = novels::ActiveModel {
+    let novel = novel_items::ActiveModel {
         id: Set(novel_id),
-        app_id: Set(app_uuid),
+        novel_id: Set(novel_uuid),
         title: Set(title.clone()),
         author: Set(parsed.author.clone()),
         created_at: Set(Some(now)),
         updated_at: Set(Some(now)),
         ..Default::default()
     };
-    novels::Entity::insert(novel).exec(&txn).await?;
+    novel_items::Entity::insert(novel).exec(&txn).await?;
     insert_novel_media_file(
         &txn,
         source_uuid,
@@ -908,7 +909,7 @@ async fn scrape_from_douban(
         && !cover_url.is_empty() {
             match download_and_upload_cover(state, novel_id, cover_url).await {
                 Ok(cover_path) => {
-                    let mut active: novels::ActiveModel = novels::Entity::find_by_id(novel_id)
+                    let mut active: novel_items::ActiveModel = novel_items::Entity::find_by_id(novel_id)
                         .one(db)
                         .await?
                         .ok_or("Novel disappeared during cover upload")?
@@ -933,7 +934,7 @@ async fn update_novel_from_douban(
     novel_id: Uuid,
     detail: &DoubanBookDetail,
 ) -> Result<(), BoxError> {
-    let mut active: novels::ActiveModel = novels::Entity::find_by_id(novel_id)
+    let mut active: novel_items::ActiveModel = novel_items::Entity::find_by_id(novel_id)
         .one(db)
         .await?
         .ok_or("Novel disappeared during Douban scrape")?
@@ -1083,14 +1084,14 @@ async fn scrape_from_qidian(
     update_novel_from_qidian(db, novel_id, &book_detail).await?;
 
     // If no cover yet, try Qidian cover
-    let novel = novels::Entity::find_by_id(novel_id).one(db).await?;
+    let novel = novel_items::Entity::find_by_id(novel_id).one(db).await?;
     if let Some(novel) = novel
         && novel.cover_path.is_none()
             && let Some(ref cover_url) = book_detail.cover_url
                 && !cover_url.is_empty() {
                     match download_and_upload_cover(state, novel_id, cover_url).await {
                         Ok(cover_path) => {
-                            let mut active: novels::ActiveModel = novel.into();
+                            let mut active: novel_items::ActiveModel = novel.into();
                             active.cover_path = Set(Some(cover_path.clone()));
                             active.update(db).await?;
                             info!(
@@ -1114,11 +1115,11 @@ async fn update_novel_from_qidian(
     novel_id: Uuid,
     detail: &QidianBookDetail,
 ) -> Result<(), BoxError> {
-    let novel = novels::Entity::find_by_id(novel_id)
+    let novel = novel_items::Entity::find_by_id(novel_id)
         .one(db)
         .await?
         .ok_or("Novel disappeared during Qidian scrape")?;
-    let mut active: novels::ActiveModel = novel.clone().into();
+    let mut active: novel_items::ActiveModel = novel.clone().into();
 
     active.qidian_id = Set(Some(detail.qidian_id.clone()));
 
@@ -1153,11 +1154,11 @@ async fn update_novel_from_qidian_search(
     novel_id: Uuid,
     item: &QidianSearchItem,
 ) -> Result<(), BoxError> {
-    let novel = novels::Entity::find_by_id(novel_id)
+    let novel = novel_items::Entity::find_by_id(novel_id)
         .one(db)
         .await?
         .ok_or("Novel disappeared during Qidian scrape")?;
-    let mut active: novels::ActiveModel = novel.clone().into();
+    let mut active: novel_items::ActiveModel = novel.clone().into();
 
     active.qidian_id = Set(Some(item.qidian_id.clone()));
 

@@ -76,7 +76,7 @@ interface BookInfo {
 interface NovelDownloadModalProps {
   open: boolean;
   onClose: () => void;
-  appId: string;
+  novelId: string;
   appName: string;
 }
 
@@ -141,7 +141,7 @@ function rankAndDedup(
 export default function NovelDownloadModal({
   open,
   onClose,
-  appId,
+  novelId,
   appName,
 }: NovelDownloadModalProps) {
   const { startDownload } = useNovelDownload();
@@ -276,12 +276,12 @@ export default function NovelDownloadModal({
 
   // ── Download ──────────────────────────────────────────────────────────────
   const handleDownload = useCallback(() => {
-    if (!selectedSource || !appId) return;
+    if (!selectedSource || !novelId) return;
 
     startDownload({
       provider: selectedSource.site,
       bookId: selectedSource.bookId,
-      appId,
+      novelId,
       title: bookInfo?.bookName || selectedSource.title,
       author: bookInfo?.author || selectedSource.author,
       year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
@@ -290,7 +290,14 @@ export default function NovelDownloadModal({
 
     // Close modal — progress tracked in popover
     handleClose();
-  }, [selectedSource, appId, bookInfo, yearInput, startDownload, handleClose]);
+  }, [
+    selectedSource,
+    novelId,
+    bookInfo,
+    yearInput,
+    startDownload,
+    handleClose,
+  ]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 

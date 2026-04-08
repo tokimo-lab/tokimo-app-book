@@ -283,7 +283,7 @@ export default function NovelSearchSection() {
       {
         provider: selectedResult.site,
         bookId: selectedResult.bookId,
-        appId: selectedLibraryId,
+        novelId: selectedLibraryId,
         title: bookInfo?.bookName || selectedResult.title,
         year: yearInput ? Number.parseInt(yearInput, 10) : undefined,
       },

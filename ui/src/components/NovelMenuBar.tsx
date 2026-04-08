@@ -24,7 +24,7 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
     onSuccess: () => {
       message.success("同步已开始");
       setSyncModalOpen(false);
-      api.novel.listNovels.invalidate(qc);
+      api.novel.listItems.invalidate(qc);
     },
     onError: (error) => {
       message.error(error.message || "同步失败");
@@ -44,7 +44,7 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
               key: "refresh",
               label: "刷新",
               icon: <RefreshCw size={14} />,
-              onClick: () => void api.novel.listNovels.invalidate(qc),
+              onClick: () => void api.novel.listItems.invalidate(qc),
             },
             {
               key: "download-novel",
@@ -110,7 +110,7 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
       <NovelDownloadModal
         open={downloadOpen}
         onClose={() => setDownloadOpen(false)}
-        appId={id!}
+        novelId={id!}
         appName={library?.name ?? "小说库"}
       />
     </>

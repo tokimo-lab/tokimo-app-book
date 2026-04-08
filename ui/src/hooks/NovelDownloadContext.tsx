@@ -33,7 +33,7 @@ export interface NovelDownloadTask {
   title: string;
   author: string;
   provider: string;
-  appId: string;
+  novelId: string;
   status: NovelDownloadStatus;
   downloaded: number;
   failed: number;
@@ -41,7 +41,7 @@ export interface NovelDownloadTask {
   rescued: number;
   total: number;
   currentChapter: string;
-  novelId?: string;
+  downloadedNovelId?: string;
   logs: NovelDownloadLog[];
   startedAt: number;
 }
@@ -58,7 +58,7 @@ interface NovelDownloadContextValue {
 export interface StartDownloadParams {
   provider: string;
   bookId: string;
-  appId: string;
+  novelId: string;
   title: string;
   author: string;
   year?: number;
@@ -159,7 +159,7 @@ export function NovelDownloadProvider({
         title: params.title,
         author: params.author,
         provider: params.provider,
-        appId: params.appId,
+        novelId: params.novelId,
         status: "downloading",
         downloaded: 0,
         failed: 0,
@@ -184,14 +184,14 @@ export function NovelDownloadProvider({
       let vipSkipped = 0;
       let rescued = 0;
       let total = params.totalChapters ?? 0;
-      let novelId: string | undefined;
+      let downloadedNovelItemId: string | undefined;
 
       fetchSseEvents(
         "/api/apps/novel/download",
         {
           provider: params.provider,
           bookId: params.bookId,
-          appId: params.appId,
+          novelId: params.novelId,
           title: params.title,
           year: params.year,
         },
@@ -205,11 +205,16 @@ export function NovelDownloadProvider({
                 author?: string;
               };
               if (info.totalChapters) total = info.totalChapters;
-              if (info.novelId) novelId = info.novelId;
+              if (info.novelId) downloadedNovelItemId = info.novelId;
               setTasks((prev) =>
                 prev.map((t) =>
                   t.id === taskId
-                    ? { ...t, total, novelId: novelId ?? t.novelId }
+                    ? {
+                        ...t,
+                        total,
+                        downloadedNovelId:
+                          downloadedNovelItemId ?? t.downloadedNovelId,
+                      }
                     : t,
                 ),
               );
@@ -250,7 +255,8 @@ export function NovelDownloadProvider({
                           rescued,
                           total,
                           failed,
-                          novelId: novelId ?? t.novelId,
+                          downloadedNovelId:
+                            downloadedNovelItemId ?? t.downloadedNovelId,
                           currentChapter: ch.title ?? "",
                         }
                       : t,
@@ -272,7 +278,8 @@ export function NovelDownloadProvider({
                           downloaded,
                           total,
                           failed,
-                          novelId: novelId ?? t.novelId,
+                          downloadedNovelId:
+                            downloadedNovelItemId ?? t.downloadedNovelId,
                           currentChapter: ch.title ?? "",
                         }
                       : t,
@@ -334,7 +341,7 @@ export function NovelDownloadProvider({
                 novelId?: string;
                 rescued?: number;
               };
-              if (d.novelId) novelId = d.novelId;
+              if (d.novelId) downloadedNovelItemId = d.novelId;
               if (d.rescued) rescued = d.rescued;
             } catch {
               /* skip */
@@ -350,7 +357,8 @@ export function NovelDownloadProvider({
                       vipSkipped,
                       rescued,
                       total,
-                      novelId: novelId ?? t.novelId,
+                      downloadedNovelId:
+                        downloadedNovelItemId ?? t.downloadedNovelId,
                       currentChapter: "",
                     }
                   : t,
