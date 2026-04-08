@@ -159,8 +159,7 @@ function FavoriteButton({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function NovelDetailPage() {
-  const { params, metadata, goBack, openWindow } = useWindowNav();
-  const id = metadata.appId as string | undefined;
+  const { params, goBack, openWindow } = useWindowNav();
   const novelId = params.novelId;
 
   const detailQuery = api.novel.getItemDetail.useQuery(
@@ -202,12 +201,11 @@ export default function NovelDetailPage() {
         route: `/chapters/${chapterId}`,
         sourceType: "novel",
         sourceId: novelId,
-        appId: id,
         novelId,
         chapterId,
       });
     },
-    [openWindow, novelId, novel?.title, id],
+    [openWindow, novelId, novel?.title],
   );
 
   const handleStartReading = useCallback(() => {

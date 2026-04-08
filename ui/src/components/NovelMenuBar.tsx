@@ -8,17 +8,14 @@ import { useMenuBar, useMessage, useWindowNav } from "@/system";
 import NovelDownloadModal from "./NovelDownloadModal";
 
 export default function NovelMenuBar({ children }: { children: ReactNode }) {
-  const { metadata, navigate } = useWindowNav();
-  const id = metadata.appId as string | undefined;
+  const { navigate } = useWindowNav();
+  const novelId = localStorage.getItem("novel-active-library") ?? undefined;
   const message = useMessage();
   const qc = useQueryClient();
 
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [syncClearData, setSyncClearData] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
-
-  const libraryQuery = api.app.getById.useQuery({ id: id! }, { enabled: !!id });
-  const library = libraryQuery.data;
 
   const syncMut = api.app.sync.useMutation({
     onSuccess: () => {
@@ -32,7 +29,7 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
   });
 
   const menuBarConfig: MenuBarConfig | null = useMemo(() => {
-    if (!id) return null;
+    if (!novelId) return null;
 
     return {
       menus: [
@@ -44,7 +41,10 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
               key: "refresh",
               label: "刷新",
               icon: <RefreshCw size={14} />,
-              onClick: () => void api.novel.listItems.invalidate(qc),
+              onClick: () => {
+                api.novel.list.invalidate(qc);
+                api.novel.listItems.invalidate(qc);
+              },
             },
             {
               key: "download-novel",
@@ -67,13 +67,13 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
         },
       ],
       search: {
-        appId: id,
+        appId: novelId,
         searchType: "novel" as const,
         onSelect: (item) =>
           navigate(`/novels/${item.id}`, item.title ?? "Novel"),
       },
     };
-  }, [id, qc, syncMut.isPending, navigate]);
+  }, [novelId, qc, syncMut.isPending, navigate]);
 
   useMenuBar(menuBarConfig);
 
@@ -90,7 +90,10 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
         onCancel={() => setSyncModalOpen(false)}
         onOk={async () => {
           try {
-            await syncMut.mutateAsync({ id: id!, clearData: syncClearData });
+            await syncMut.mutateAsync({
+              id: novelId!,
+              clearData: syncClearData,
+            });
           } finally {
             setSyncModalOpen(false);
           }
@@ -107,12 +110,14 @@ export default function NovelMenuBar({ children }: { children: ReactNode }) {
         </p>
       </Modal>
 
-      <NovelDownloadModal
-        open={downloadOpen}
-        onClose={() => setDownloadOpen(false)}
-        novelId={id!}
-        appName={library?.name ?? "小说库"}
-      />
+      {novelId && (
+        <NovelDownloadModal
+          open={downloadOpen}
+          onClose={() => setDownloadOpen(false)}
+          novelId={novelId}
+          appName="小说库"
+        />
+      )}
     </>
   );
 }

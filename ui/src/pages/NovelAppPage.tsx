@@ -109,9 +109,8 @@ function BookCard({
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-export default function NovelAppPage() {
-  const { metadata, navigate } = useWindowNav();
-  const id = metadata.appId as string | undefined;
+export default function NovelAppPage({ novelId: id }: { novelId: string }) {
+  const { navigate } = useWindowNav();
 
   const [page, setPage] = useState(1);
   const [allItems, setAllItems] = useState<NovelOutput[]>([]);
@@ -167,20 +166,15 @@ export default function NovelAppPage() {
   }, []);
 
   // ── Data ────────────────────────────────────────────────────────────────────
-  api.app.getById.useQuery({ id: id! }, { enabled: !!id });
-
   const sortParams = parseSortValue(sortValue);
 
-  const novelsQuery = api.novel.listItems.useQuery(
-    {
-      id: id!,
-      page,
-      pageSize,
-      sortBy: sortParams.sortBy,
-      sortDir: sortParams.sortDir,
-    },
-    { enabled: !!id },
-  );
+  const novelsQuery = api.novel.listItems.useQuery({
+    id: id,
+    page,
+    pageSize,
+    sortBy: sortParams.sortBy,
+    sortDir: sortParams.sortDir,
+  });
 
   const total = novelsQuery.data?.total ?? 0;
   const hasMore = allItems.length < total;
@@ -239,7 +233,7 @@ export default function NovelAppPage() {
     [navigate],
   );
 
-  if (!id) return null;
+  if (novelsQuery.isLoading && allItems.length === 0) return null;
 
   return (
     <div className="space-y-4">
