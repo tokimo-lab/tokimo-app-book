@@ -58,7 +58,7 @@ function VolumeSection({
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[var(--glass-border)]">
+    <div className="overflow-hidden rounded-lg border border-border-base">
       <button
         type="button"
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
@@ -82,7 +82,7 @@ function VolumeSection({
         </div>
       </button>
       {open && (
-        <div className="border-t border-[var(--glass-border)]">
+        <div className="border-t border-border-base">
           {volume.chapters.map((ch) => (
             <ChapterRow
               key={ch.id}
@@ -374,7 +374,7 @@ export default function BookDetailPage() {
 
             {/* Orphan chapters (no volume) */}
             {bookDetail.orphanChapters.length > 0 && (
-              <div className="overflow-hidden rounded-lg border border-[var(--glass-border)]">
+              <div className="overflow-hidden rounded-lg border border-border-base">
                 {bookDetail.volumes.length > 0 && (
                   <div className="px-4 py-2.5 text-sm font-semibold text-fg-muted">
                     其他章节
@@ -403,7 +403,7 @@ export default function BookDetailPage() {
               {bookDetail.files.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center gap-3 rounded-lg border border-[var(--glass-border)] px-4 py-3"
+                  className="flex items-center gap-3 rounded-lg border border-border-base px-4 py-3"
                 >
                   <FileText size={20} className="flex-shrink-0 text-fg-muted" />
                   <div className="min-w-0 flex-1">
