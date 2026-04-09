@@ -237,7 +237,7 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
   return (
     <div className="space-y-4">
       {/* Sort + Content */}
-      <section className="rounded-xl border border-[var(--glass-border)] bg-black/[0.02] p-4 dark:bg-white/[0.03]">
+      <section className="rounded-xl border border-border-base bg-black/[0.02] p-4 dark:bg-white/[0.03]">
         {/* Header */}
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2">

@@ -371,7 +371,7 @@ export default function BookDownloadModal({
               </div>
 
               {/* Download config + button */}
-              <div className="space-y-3 border-t border-[var(--glass-border)] pt-2">
+              <div className="space-y-3 border-t border-border-base pt-2">
                 {/* Source selector */}
                 {selectedBook.sources.length > 1 && (
                   <div className="space-y-2">
@@ -382,7 +382,7 @@ export default function BookDownloadModal({
                         {selectedBook.sources.length} 个可用
                       </Tag>
                     </div>
-                    <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-[var(--glass-border)] p-1">
+                    <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border-base p-1">
                       {selectedBook.sources.map((source) => {
                         const isActive =
                           source.site === selectedSource.site &&
@@ -567,7 +567,7 @@ export default function BookDownloadModal({
                   </span>
                   <Tag>{others.length}</Tag>
                 </div>
-                <div className="max-h-[350px] divide-y divide-[var(--glass-border)] overflow-y-auto rounded-lg border border-[var(--glass-border)]">
+                <div className="max-h-[350px] divide-y divide-[var(--border-base)] overflow-y-auto rounded-lg border border-border-base">
                   {others.map((book) => (
                     <div
                       key={`${book.best.site}-${book.best.bookId}`}
