@@ -473,7 +473,8 @@ export default function BookDownloadModal({
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSearch();
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing)
+                    handleSearch();
                 }}
               />
               {keyword && (
