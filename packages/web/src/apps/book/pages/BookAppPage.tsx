@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BookOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { posterThumbUrl } from "@/lib/thumb";
+import { useInfiniteScroll } from "@/shared/hooks/use-infinite-scroll";
 import { useWindowNav } from "@/system";
 
 const MIN_CARD_WIDTH = 150;
@@ -113,10 +114,7 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
   const { navigate } = useWindowNav();
 
   const [page, setPage] = useState(1);
-  const [allItems, setAllItems] = useState<BookOutput[]>([]);
   const [sortValue, setSortValue] = useState<SortValue>("addedAt");
-  const lastAppendedPageRef = useRef(0);
-  const isLoadingMoreRef = useRef(false);
 
   // ── Grid layout ─────────────────────────────────────────────────────────────
   const gridWrapperRef = useRef<HTMLDivElement>(null);
@@ -159,79 +157,49 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
     return Math.max(estimatedCols * (visibleRows + 6), 24);
   }, []);
 
-  const resetPagination = useCallback(() => {
-    lastAppendedPageRef.current = 0;
-    setAllItems([]);
-    setPage(1);
-  }, []);
-
-  // Reset when switching library
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset on id change
-  useEffect(() => {
-    lastAppendedPageRef.current = 0;
-    setAllItems([]);
-    setPage(1);
-    setSortValue("addedAt");
-  }, [id]);
-
   // ── Data ────────────────────────────────────────────────────────────────────
   const sortParams = parseSortValue(sortValue);
 
   const booksQuery = api.book.listItems.useQuery({
-    id: id,
+    id,
     page,
     pageSize,
     sortBy: sortParams.sortBy,
     sortDir: sortParams.sortDir,
   });
 
-  const total = booksQuery.data?.total ?? 0;
-  const hasMore = allItems.length < total;
-
-  // Append items
-  useEffect(() => {
-    const items = booksQuery.data?.items;
-    if (!items || booksQuery.data?.page == null) return;
-    const currentPage = booksQuery.data.page;
-    if (currentPage <= lastAppendedPageRef.current) return;
-    lastAppendedPageRef.current = currentPage;
-    setAllItems((prev) => {
-      const existingIds = new Set(prev.map((i) => i.id));
-      const newItems = items.filter((i) => !existingIds.has(i.id));
-      return [...prev, ...newItems];
+  const { items, total, hasMore, sentinelRef, reset } =
+    useInfiniteScroll<BookOutput>({
+      queryData: booksQuery.data,
+      isFetching: booksQuery.isFetching,
+      onLoadMore: () => setPage((p) => p + 1),
     });
-    isLoadingMoreRef.current = false;
-  }, [booksQuery.data]);
 
-  // Infinite scroll (nearest scrollable ancestor — matches MediaAppPage)
+  const resetAll = useCallback(() => {
+    reset();
+    setPage(1);
+  }, [reset]);
+
+  // Reset when data is externally cleared (e.g. sync with "clear" option)
+  const lastKnownTotalRef = useRef(total);
   useEffect(() => {
-    let container: HTMLElement | null =
-      gridWrapperRef.current?.parentElement ?? null;
-    while (container) {
-      const ov = getComputedStyle(container).overflowY;
-      if (ov === "auto" || ov === "scroll") break;
-      container = container.parentElement;
+    if (lastKnownTotalRef.current > 0 && total === 0 && page > 1) {
+      resetAll();
     }
-    if (!container) return;
+    lastKnownTotalRef.current = total;
+  }, [total, page, resetAll]);
 
-    const check = () => {
-      if (isLoadingMoreRef.current || !hasMore || booksQuery.isFetching) return;
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      if (scrollTop + clientHeight >= scrollHeight - 600) {
-        isLoadingMoreRef.current = true;
-        setPage((p) => p + 1);
-      }
-    };
-
-    container.addEventListener("scroll", check, { passive: true });
-    check();
-    return () => container.removeEventListener("scroll", check);
-  }, [hasMore, booksQuery.isFetching]);
+  // Reset when switching library
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset on id change
+  useEffect(() => {
+    resetAll();
+    setSortValue("addedAt");
+  }, [id]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleSortChange = (v: SortValue) => {
     setSortValue(v);
-    resetPagination();
+    resetAll();
   };
 
   const handleItemClick = useCallback(
@@ -242,9 +210,8 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
   );
 
   if (
-    (booksQuery.isLoading ||
-      (allItems.length === 0 && booksQuery.isFetching)) &&
-    allItems.length === 0
+    (booksQuery.isLoading || (items.length === 0 && booksQuery.isFetching)) &&
+    items.length === 0
   )
     return null;
 
@@ -282,11 +249,11 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
         {/* Content — wrapper always mounted for ResizeObserver */}
         <div ref={gridWrapperRef}>
           {booksQuery.isLoading ||
-          (allItems.length === 0 && booksQuery.isFetching) ? (
+          (items.length === 0 && booksQuery.isFetching) ? (
             <div className="flex h-64 items-center justify-center">
               <Spin />
             </div>
-          ) : allItems.length === 0 ? (
+          ) : items.length === 0 ? (
             <Empty description="暂无小说" />
           ) : (
             <>
@@ -297,7 +264,7 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
                   gap: CARD_GAP,
                 }}
               >
-                {allItems.map((item) => (
+                {items.map((item) => (
                   <BookCard
                     key={item.id}
                     item={item}
@@ -306,6 +273,7 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
                 ))}
               </div>
 
+              <div ref={sentinelRef} className="h-px" />
               <div className="mt-2 flex justify-center py-3">
                 {booksQuery.isFetching && <Spin />}
                 {!hasMore && total > 0 && !booksQuery.isFetching && (

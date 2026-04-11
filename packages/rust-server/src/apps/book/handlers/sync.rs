@@ -37,6 +37,12 @@ pub async fn sync_book(
     if book.sync_status == "syncing" && !clear_data {
         return Err(AppError::Conflict("Book library is already syncing".into()));
     }
+
+    // Clear data synchronously so frontend sees empty state immediately
+    if clear_data {
+        AppSyncService::clear_library_data(&state.db, uid, &book.r#type).await?;
+    }
+
     BookRepo::update_sync_status(&state.db, uid, "syncing", None).await?;
 
     let db = state.db.clone();
@@ -44,7 +50,7 @@ pub async fn sync_book(
     let storage = state.storage.clone();
 
     tokio::spawn(async move {
-        match AppSyncService::execute_book_sync(&db, &sources, &storage, uid, clear_data).await {
+        match AppSyncService::execute_book_sync(&db, &sources, &storage, uid, false).await {
             Ok(result) => {
                 info!(
                     "book sync completed, {} jobs dispatched",
