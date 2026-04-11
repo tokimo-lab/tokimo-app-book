@@ -21,6 +21,7 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
     onSuccess: () => {
       message.success("同步已开始");
       setSyncModalOpen(false);
+      api.book.list.invalidate(qc);
       api.book.listItems.invalidate(qc);
     },
     onError: (error) => {
