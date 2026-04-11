@@ -1,4 +1,4 @@
-import { AppSidebar, Tooltip } from "@tokiomo/components";
+import { AppSidebar, CircularProgress, Tooltip } from "@tokiomo/components";
 import { Plus, Settings } from "lucide-react";
 import type { BookContainerOutput } from "@/generated/rust-types/BookContainerOutput";
 import { AppIcon } from "@/shared/components/icons";
@@ -10,6 +10,7 @@ export default function BookSidebar({
   collapsed,
   onCreateClick,
   onSettingsClick,
+  syncProgress,
 }: {
   libraries: BookContainerOutput[];
   activeId: string | null;
@@ -17,6 +18,7 @@ export default function BookSidebar({
   collapsed?: boolean;
   onCreateClick: () => void;
   onSettingsClick: () => void;
+  syncProgress?: Record<string, { isActive: boolean; pct: number }>;
 }) {
   const sections = [
     {
@@ -24,12 +26,17 @@ export default function BookSidebar({
         key: lib.id,
         icon: <AppIcon icon={lib.icon} color={lib.color} size={20} />,
         label: lib.name,
-        extra:
-          lib.itemCount > 0 ? (
+        extra: (() => {
+          const sp = syncProgress?.[lib.id];
+          if (sp?.isActive) {
+            return <CircularProgress value={sp.pct} size={24} />;
+          }
+          return lib.itemCount > 0 ? (
             <span className="text-[10px] tabular-nums text-fg-muted">
               {lib.itemCount}
             </span>
-          ) : undefined,
+          ) : undefined;
+        })(),
       })),
     },
   ];

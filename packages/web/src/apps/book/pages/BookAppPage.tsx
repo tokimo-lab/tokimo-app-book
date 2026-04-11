@@ -165,6 +165,15 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
     setPage(1);
   }, []);
 
+  // Reset when switching library
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset on id change
+  useEffect(() => {
+    lastAppendedPageRef.current = 0;
+    setAllItems([]);
+    setPage(1);
+    setSortValue("addedAt");
+  }, [id]);
+
   // ── Data ────────────────────────────────────────────────────────────────────
   const sortParams = parseSortValue(sortValue);
 
@@ -232,7 +241,12 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
     [navigate],
   );
 
-  if (booksQuery.isLoading && allItems.length === 0) return null;
+  if (
+    (booksQuery.isLoading ||
+      (allItems.length === 0 && booksQuery.isFetching)) &&
+    allItems.length === 0
+  )
+    return null;
 
   return (
     <div className="space-y-4">
@@ -267,7 +281,8 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
 
         {/* Content — wrapper always mounted for ResizeObserver */}
         <div ref={gridWrapperRef}>
-          {booksQuery.isLoading && allItems.length === 0 ? (
+          {booksQuery.isLoading ||
+          (allItems.length === 0 && booksQuery.isFetching) ? (
             <div className="flex h-64 items-center justify-center">
               <Spin />
             </div>

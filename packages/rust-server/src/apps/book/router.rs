@@ -63,4 +63,8 @@ pub fn build_book_app_routes() -> Router<Arc<AppState>> {
             "/api/apps/book/{id}/sync-status",
             get(handlers::get_book_sync_status),
         )
+        .route(
+            "/api/apps/book/{id}/sync-progress",
+            get(handlers::get_book_sync_progress),
+        )
 }

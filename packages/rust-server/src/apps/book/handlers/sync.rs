@@ -7,7 +7,9 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::db::ApiDateTimeExt;
+use crate::db::models::book::{BookSyncProgressOutput, BookTaskProgress};
 use crate::db::repos::book_repo::BookRepo;
+use crate::db::repos::job_repo::JobRepo;
 use crate::error::AppError;
 use crate::error::OptionExt;
 use crate::handlers::{ok, ApiResponse};
@@ -26,11 +28,17 @@ pub async fn sync_book(
         .parse()
         .map_err(|_| AppError::BadRequest("invalid book id".into()))?;
 
-    let _book = BookRepo::get_container_by_id(&state.db, uid)
+    let book = BookRepo::get_container_by_id(&state.db, uid)
         .await?
         .not_found(format!("book library {id} not found"))?;
 
     let clear_data = body.and_then(|b| b.clear_data).unwrap_or(false);
+
+    if book.sync_status == "syncing" && !clear_data {
+        return Err(AppError::Conflict("Book library is already syncing".into()));
+    }
+    BookRepo::update_sync_status(&state.db, uid, "syncing", None).await?;
+
     let db = state.db.clone();
     let sources = state.sources.clone();
     let storage = state.storage.clone();
@@ -67,6 +75,60 @@ pub async fn get_book_sync_status(
         "status": book.sync_status,
         "lastSyncAt": book.last_sync_at.to_api_datetime(),
     })))
+}
+
+/// GET /api/apps/book/{id}/sync-progress
+pub async fn get_book_sync_progress(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<Json<ApiResponse<BookSyncProgressOutput>>, AppError> {
+    let uid = parse_uuid(&id)?;
+    let book = BookRepo::get_container_by_id(&state.db, uid)
+        .await?
+        .not_found(format!("book library {id} not found"))?;
+
+    let job_types = &["book_scrape"];
+    let (total, completed, running, pending, failed) =
+        JobRepo::count_jobs_by_app(&state.db, uid, job_types).await?;
+
+    let rows = JobRepo::get_task_progress_by_app(&state.db, uid, job_types).await?;
+    let tasks: Vec<BookTaskProgress> = rows
+        .into_iter()
+        .map(|row| {
+            let status = if row.running > 0 {
+                "running"
+            } else if row.pending > 0 {
+                "pending"
+            } else if row.failed > 0 && row.completed == 0 {
+                "failed"
+            } else {
+                "completed"
+            };
+
+            let (total_items, processed_items) = {
+                let t = row.completed + row.running + row.pending + row.failed;
+                (t, row.completed)
+            };
+
+            BookTaskProgress {
+                task_type: row.job_type,
+                status: status.to_string(),
+                total_items,
+                processed_items,
+            }
+        })
+        .collect();
+
+    Ok(ok(BookSyncProgressOutput {
+        book_id: uid.to_string(),
+        status: book.sync_status,
+        total,
+        completed,
+        running,
+        pending,
+        failed,
+        tasks,
+    }))
 }
 
 /// GET /api/apps/book/sync-statuses
