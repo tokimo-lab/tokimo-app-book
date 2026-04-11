@@ -1,11 +1,11 @@
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Spin } from "@tokiomo/components";
 import { BookOpen, Plus } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
+import { useSyncProgress } from "@/shared/hooks/use-sync-progress";
 import { useWindowNav } from "@/system";
-import { useJobEvents } from "@/system/events/useJobEvents";
 import BookContent from "../pages/BookAppPage";
 import BookSettingsModal from "./BookSettingsModal";
 import BookSidebar from "./BookSidebar";
@@ -53,54 +53,18 @@ export default function BookApp() {
     }
   };
 
-  // ── Sync progress tracking ──
+  // ── Sync progress tracking (WS-driven + fallback polling) ──
   const queryClient = useQueryClient();
 
-  const syncProgressQueries = useQueries({
-    queries: (libraries ?? []).map((lib) => ({
-      queryKey: api.book.getSyncProgress.queryKey({ id: lib.id }),
-      queryFn: () => api.book.getSyncProgress.fetch({ id: lib.id }),
-      enabled: lib.syncStatus === "syncing",
-      refetchInterval: 3000 as const,
-      staleTime: 2000,
-    })),
-  });
-
-  const syncProgress: Record<string, { isActive: boolean; pct: number }> = {};
-  for (let i = 0; i < (libraries ?? []).length; i++) {
-    const lib = libraries![i];
-    const q = syncProgressQueries[i];
-    if (q?.data) {
-      const d = q.data;
-      const total = d.completed + d.running + d.pending + d.failed;
-      const pct = total > 0 ? Math.round((d.completed / total) * 100) : 0;
-      const isActive = d.status === "syncing" || d.running > 0 || d.pending > 0;
-      if (isActive) {
-        syncProgress[lib.id] = { isActive, pct };
-      }
-    } else if (lib.syncStatus === "syncing") {
-      syncProgress[lib.id] = { isActive: true, pct: 0 };
-    }
-  }
-
-  useJobEvents({
-    onEvent: (event) => {
-      if (event.type === "job_update") {
-        const payload = event.job.payload as Record<string, unknown>;
-        const appId = payload?.appId as string | undefined;
-        if (appId && (libraries ?? []).some((l) => l.id === appId)) {
-          queryClient.invalidateQueries({
-            queryKey: api.book.getSyncProgress.queryKey({ id: appId }),
-          });
-          if (
-            event.job.status === "completed" ||
-            event.job.status === "failed"
-          ) {
-            api.book.list.invalidate(queryClient);
-            api.book.listItems.invalidate(queryClient);
-          }
-        }
-      }
+  const syncProgress = useSyncProgress({
+    libraries,
+    progressQueryKey: (id) => api.book.getSyncProgress.queryKey({ id }),
+    fetchProgress: (id) => api.book.getSyncProgress.fetch({ id }),
+    onContentRefresh: () => {
+      api.book.listItems.invalidate(queryClient);
+    },
+    onLibraryRefresh: () => {
+      api.book.list.invalidate(queryClient);
     },
   });
 
