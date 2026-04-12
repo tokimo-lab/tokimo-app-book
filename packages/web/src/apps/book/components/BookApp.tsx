@@ -4,6 +4,7 @@ import { BookOpen, Plus } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
+import { useSidebarCollapsed } from "@/shared/hooks/use-sidebar-collapsed";
 import { useSyncProgress } from "@/shared/hooks/use-sync-progress";
 import { useWindowNav } from "@/system";
 import BookContent from "../pages/BookAppPage";
@@ -22,7 +23,10 @@ export default function BookApp() {
   const { LazyViewComponent, route, navigate, updateTitle } = useWindowNav();
   const { data: libraries, isLoading } = api.book.list.useQuery();
   const [containerRef, containerWidth] = useContainerWidth();
-  const sidebarCollapsed = containerWidth > 0 && containerWidth < 720;
+  const { collapsed: sidebarCollapsed, onToggleCollapse } = useSidebarCollapsed(
+    "book",
+    containerWidth > 0 && containerWidth < 720,
+  );
   const [activeLibraryId, setActiveLibraryId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const initialized = useRef(false);
@@ -125,6 +129,7 @@ export default function BookApp() {
           onCreateClick={() => setSettingsOpen(true)}
           onSettingsClick={() => setSettingsOpen(true)}
           syncProgress={syncProgress}
+          onToggleCollapse={onToggleCollapse}
         />
         <div
           className={`min-w-0 flex-1 overflow-auto${isDetailPage ? " px-3 py-3 lg:px-4 lg:py-4" : ""}`}
