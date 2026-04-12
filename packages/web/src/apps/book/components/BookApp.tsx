@@ -135,7 +135,13 @@ export default function BookApp() {
             </Suspense>
           ) : (
             activeLibraryId &&
-            activeLibrary && <BookContent bookId={activeLibraryId} />
+            activeLibrary && (
+              <BookContent
+                key={activeLibraryId}
+                bookId={activeLibraryId}
+                syncing={!!syncProgress[activeLibraryId]?.isActive}
+              />
+            )
           )}
         </div>
       </div>

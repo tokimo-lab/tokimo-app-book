@@ -1,4 +1,5 @@
 import { Empty, PosterCard, Spin, Tag } from "@tokiomo/components";
+import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BookOutput } from "@/generated/rust-api";
@@ -10,6 +11,13 @@ import { useWindowNav } from "@/system";
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;
 const CARD_TITLE_HEIGHT = 52;
+
+const LAYOUT_SPRING = {
+  type: "spring" as const,
+  stiffness: 400,
+  damping: 30,
+  mass: 0.8,
+};
 
 const SORT_OPTIONS = [
   { label: "最近添加", value: "addedAt" },
@@ -110,7 +118,13 @@ function BookCard({
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-export default function BookAppPage({ bookId: id }: { bookId: string }) {
+export default function BookAppPage({
+  bookId: id,
+  syncing,
+}: {
+  bookId: string;
+  syncing?: boolean;
+}) {
   const { navigate } = useWindowNav();
 
   const [page, setPage] = useState(1);
@@ -173,21 +187,13 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
       queryData: booksQuery.data,
       isFetching: booksQuery.isFetching,
       onLoadMore: () => setPage((p) => p + 1),
+      enabled: !syncing,
     });
 
   const resetAll = useCallback(() => {
     reset();
     setPage(1);
   }, [reset]);
-
-  // Reset when data is externally cleared (e.g. sync with "clear" option)
-  const lastKnownTotalRef = useRef(total);
-  useEffect(() => {
-    if (lastKnownTotalRef.current > 0 && total === 0 && page > 1) {
-      resetAll();
-    }
-    lastKnownTotalRef.current = total;
-  }, [total, page, resetAll]);
 
   // Reset when switching library
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset on id change
@@ -210,10 +216,16 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
   );
 
   if (
-    (booksQuery.isLoading || (items.length === 0 && booksQuery.isFetching)) &&
+    (booksQuery.isLoading ||
+      syncing ||
+      (items.length === 0 && booksQuery.isFetching)) &&
     items.length === 0
   )
-    return null;
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Spin />
+      </div>
+    );
 
   return (
     <div className="space-y-4">
@@ -249,12 +261,13 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
         {/* Content — wrapper always mounted for ResizeObserver */}
         <div ref={gridWrapperRef}>
           {booksQuery.isLoading ||
+          syncing ||
           (items.length === 0 && booksQuery.isFetching) ? (
             <div className="flex h-64 items-center justify-center">
               <Spin />
             </div>
           ) : items.length === 0 ? (
-            <Empty description="暂无小说" />
+            <Empty description="暂无书籍，请先同步" />
           ) : (
             <>
               <div
@@ -265,11 +278,12 @@ export default function BookAppPage({ bookId: id }: { bookId: string }) {
                 }}
               >
                 {items.map((item) => (
-                  <BookCard
-                    key={item.id}
-                    item={item}
-                    onClick={() => handleItemClick(item)}
-                  />
+                  <motion.div key={item.id} layout transition={LAYOUT_SPRING}>
+                    <BookCard
+                      item={item}
+                      onClick={() => handleItemClick(item)}
+                    />
+                  </motion.div>
                 ))}
               </div>
 
