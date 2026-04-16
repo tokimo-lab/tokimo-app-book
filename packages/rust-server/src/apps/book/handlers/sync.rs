@@ -6,15 +6,15 @@ use std::sync::Arc;
 use tracing::{error, info};
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::db::ApiDateTimeExt;
 use crate::db::models::book::{BookSyncProgressOutput, BookTaskProgress};
 use crate::db::repos::book_repo::BookRepo;
 use crate::db::repos::job_repo::JobRepo;
 use crate::error::AppError;
 use crate::error::OptionExt;
-use crate::handlers::{ok, ApiResponse};
+use crate::handlers::{ApiResponse, ok};
 use crate::services::media::app_sync::AppSyncService;
-use crate::AppState;
 
 use super::{BookSyncInput, parse_uuid};
 
@@ -24,9 +24,7 @@ pub async fn sync_book(
     Path(id): Path<String>,
     body: Option<Json<BookSyncInput>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let uid: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("invalid book id".into()))?;
+    let uid: Uuid = id.parse().map_err(|_| AppError::BadRequest("invalid book id".into()))?;
 
     let book = BookRepo::get_container_by_id(&state.db, uid)
         .await?
@@ -52,10 +50,7 @@ pub async fn sync_book(
     tokio::spawn(async move {
         match AppSyncService::execute_book_sync(&db, &sources, &storage, uid, false).await {
             Ok(result) => {
-                info!(
-                    "book sync completed, {} jobs dispatched",
-                    result.total_jobs
-                );
+                info!("book sync completed, {} jobs dispatched", result.total_jobs);
             }
             Err(e) => {
                 error!("book sync failed: {e}");
@@ -94,8 +89,7 @@ pub async fn get_book_sync_progress(
         .not_found(format!("book library {id} not found"))?;
 
     let job_types = &["book_scrape"];
-    let (total, completed, running, pending, failed) =
-        JobRepo::count_jobs_by_app(&state.db, uid, job_types).await?;
+    let (total, completed, running, pending, failed) = JobRepo::count_jobs_by_app(&state.db, uid, job_types).await?;
 
     let rows = JobRepo::get_task_progress_by_app(&state.db, uid, job_types).await?;
     let tasks: Vec<BookTaskProgress> = rows

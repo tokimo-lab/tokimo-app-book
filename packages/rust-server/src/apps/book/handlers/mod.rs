@@ -336,9 +336,7 @@ pub(crate) async fn to_book_container_outputs(
     Ok(outputs)
 }
 
-pub(crate) fn chapter_to_output(
-    c: &crate::db::entities::book_chapters::Model,
-) -> BookChapterOutput {
+pub(crate) fn chapter_to_output(c: &crate::db::entities::book_chapters::Model) -> BookChapterOutput {
     BookChapterOutput {
         id: c.id.to_string(),
         chapter_number: c.chapter_number,
