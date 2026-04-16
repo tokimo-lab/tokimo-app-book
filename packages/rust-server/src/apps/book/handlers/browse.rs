@@ -8,15 +8,15 @@ use axum::{
 use tracing::warn;
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::db::repos::book_repo::BookRepo;
 use crate::error::AppError;
 use crate::error::OptionExt;
-use crate::handlers::{ok, ApiResponse};
-use crate::AppState;
+use crate::handlers::{ApiResponse, ok};
 
 use super::{
-    chapter_to_output, ListBookItemsQuery, BookChapterContentOutput, BookChapterOutput,
-    BookDetailOutput, BookFileOutput, BookVolumeOutput,
+    BookChapterContentOutput, BookChapterOutput, BookDetailOutput, BookFileOutput, BookVolumeOutput,
+    ListBookItemsQuery, chapter_to_output,
 };
 
 /// GET /api/apps/book/{id}/items
@@ -25,9 +25,7 @@ pub async fn list_book_items(
     Path(id): Path<String>,
     Query(q): Query<ListBookItemsQuery>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let book_id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("invalid book id".into()))?;
+    let book_id: Uuid = id.parse().map_err(|_| AppError::BadRequest("invalid book id".into()))?;
 
     let page = q.page.unwrap_or(1);
     let page_size = q.page_size.unwrap_or(20);
@@ -35,9 +33,7 @@ pub async fn list_book_items(
     let sort_dir = q.sort_dir.as_deref().unwrap_or("asc");
     let search = q.search.as_deref();
 
-    let (items, total) =
-        BookRepo::list_items(&state.db, book_id, page, page_size, sort_by, sort_dir, search)
-            .await?;
+    let (items, total) = BookRepo::list_items(&state.db, book_id, page, page_size, sort_by, sort_dir, search).await?;
 
     Ok(ok(serde_json::json!({
         "items": items,
@@ -52,9 +48,7 @@ pub async fn get_book_detail(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<Json<ApiResponse<BookDetailOutput>>, AppError> {
-    let item_id: Uuid = id
-        .parse()
-        .map_err(|_| AppError::BadRequest("invalid book id".into()))?;
+    let item_id: Uuid = id.parse().map_err(|_| AppError::BadRequest("invalid book id".into()))?;
     let db = &state.db;
 
     let book = BookRepo::get_item_by_id(db, item_id)
@@ -151,9 +145,7 @@ pub async fn get_chapter_content(
         .not_found("Chapter not found")?;
 
     if chapter.book_id != item_id {
-        return Err(AppError::BadRequest(
-            "Chapter does not belong to this book".into(),
-        ));
+        return Err(AppError::BadRequest("Chapter does not belong to this book".into()));
     }
 
     let book = BookRepo::get_item_by_id(db, item_id)
@@ -162,9 +154,7 @@ pub async fn get_chapter_content(
 
     // Resolve volume title
     let volume_title = match chapter.volume_id {
-        Some(vol_id) => BookRepo::get_volume_by_id(db, vol_id)
-            .await?
-            .and_then(|v| v.title),
+        Some(vol_id) => BookRepo::get_volume_by_id(db, vol_id).await?.and_then(|v| v.title),
         None => None,
     };
 

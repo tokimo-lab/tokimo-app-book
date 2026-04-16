@@ -5,17 +5,17 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::db::models::book::BookContainerOutput;
 use crate::db::repos::book_repo::BookRepo;
 use crate::error::AppError;
 use crate::error::OptionExt;
-use crate::handlers::{ok, ok_empty, ApiResponse};
+use crate::handlers::{ApiResponse, ok, ok_empty};
 use crate::services::media::source::normalize_source_path;
-use crate::AppState;
 
 use super::{
-    parse_uuid, sources_to_json, to_book_container_output, to_book_container_outputs,
-    CreateBookContainerInput, BookReorderInput, UpdateBookContainerInput,
+    BookReorderInput, CreateBookContainerInput, UpdateBookContainerInput, parse_uuid, sources_to_json,
+    to_book_container_output, to_book_container_outputs,
 };
 
 /// GET /api/apps/book
@@ -45,8 +45,7 @@ pub async fn create_book(
     State(state): State<Arc<AppState>>,
     Json(body): Json<CreateBookContainerInput>,
 ) -> Result<Json<ApiResponse<BookContainerOutput>>, AppError> {
-    let model =
-        BookRepo::create_container(&state.db, body.name, body.r#type, body.settings).await?;
+    let model = BookRepo::create_container(&state.db, body.name, body.r#type, body.settings).await?;
     let book_id = model.id;
 
     let mut needs_update = false;
@@ -153,12 +152,7 @@ pub async fn reorder_books(
     let orders: Vec<(Uuid, i32)> = body
         .orders
         .into_iter()
-        .filter_map(|item| {
-            item.id
-                .parse::<Uuid>()
-                .ok()
-                .map(|uid| (uid, item.sort_order))
-        })
+        .filter_map(|item| item.id.parse::<Uuid>().ok().map(|uid| (uid, item.sort_order)))
         .collect();
     BookRepo::reorder_containers(&state.db, orders).await?;
     Ok(ok_empty())

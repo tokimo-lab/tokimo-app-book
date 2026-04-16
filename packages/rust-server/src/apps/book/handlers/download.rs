@@ -16,14 +16,14 @@ use futures_util::stream::Stream;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-use crate::db::repos::book_repo::{CreateBookItemInput, InsertChapterInput, InsertVolumeInput, BookRepo};
+use crate::AppState;
+use crate::db::repos::book_repo::{BookRepo, CreateBookItemInput, InsertChapterInput, InsertVolumeInput};
 use crate::error::AppError;
 use crate::error::OptionExt;
-use crate::handlers::{ok, ApiResponse};
+use crate::handlers::{ApiResponse, ok};
 use crate::services::storage::UploadOptions;
-use crate::AppState;
 
-use super::{BookInfoInput, BookDownloadInput, BookProviderOutput, BookSearchInput, BookSearchResultOutput};
+use super::{BookDownloadInput, BookInfoInput, BookProviderOutput, BookSearchInput, BookSearchResultOutput};
 
 /// GET /api/apps/book/providers
 pub async fn list_providers() -> Json<ApiResponse<Vec<BookProviderOutput>>> {
@@ -39,9 +39,7 @@ pub async fn list_providers() -> Json<ApiResponse<Vec<BookProviderOutput>>> {
 }
 
 /// POST /api/apps/book/search — SSE stream of search results from all providers.
-pub async fn search_books(
-    Json(input): Json<BookSearchInput>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+pub async fn search_books(Json(input): Json<BookSearchInput>) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let s = stream! {
         let mut search = novel_downloader::search_stream(&input.keyword);
         while let Some(result) = search.next().await {
@@ -64,9 +62,7 @@ pub async fn search_books(
 }
 
 /// POST /api/apps/book/book-info — Get detailed book info from a provider.
-pub async fn get_book_info(
-    Json(input): Json<BookInfoInput>,
-) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+pub async fn get_book_info(Json(input): Json<BookInfoInput>) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let info = novel_downloader::get_book_info(&input.provider, &input.book_id)
         .await
         .map_err(|e| AppError::BadRequest(format!("Failed to get book info: {e}")))?;
@@ -114,10 +110,7 @@ pub async fn download_book(
 
 /// Core download logic. Returns collected events to be streamed to the client.
 #[allow(clippy::too_many_lines)]
-async fn do_download_book(
-    state: Arc<AppState>,
-    input: BookDownloadInput,
-) -> Result<Vec<Event>, AppError> {
+async fn do_download_book(state: Arc<AppState>, input: BookDownloadInput) -> Result<Vec<Event>, AppError> {
     let db = state.db.clone();
     let sources = Arc::clone(&state.sources);
 
@@ -138,11 +131,7 @@ async fn do_download_book(
         .await
         .map_err(|e| AppError::BadRequest(format!("Failed to get book info: {e}")))?;
 
-    let book_title = input
-        .title
-        .as_deref()
-        .unwrap_or(&book_info.book_name)
-        .to_string();
+    let book_title = input.title.as_deref().unwrap_or(&book_info.book_name).to_string();
     let year = input.year;
 
     let folder_name = match year {
@@ -189,9 +178,7 @@ async fn do_download_book(
     if !book_info.cover_url.is_empty() {
         match download_and_upload_cover(&state, book_item_id, &book_info.cover_url).await {
             Ok(cover_path) => {
-                if let Err(e) =
-                    BookRepo::update_cover_path(&db, book_item_id, cover_path.clone()).await
-                {
+                if let Err(e) = BookRepo::update_cover_path(&db, book_item_id, cover_path.clone()).await {
                     warn!("Failed to update book cover path: {e}");
                 } else {
                     info!("Downloaded cover for book {}: {}", book_title, cover_path);
@@ -425,11 +412,7 @@ async fn do_download_book(
                     }
                 }
             }
-            Ok(novel_downloader::DownloadEvent::ChapterError {
-                index,
-                title,
-                error,
-            }) => {
+            Ok(novel_downloader::DownloadEvent::ChapterError { index, title, error }) => {
                 _failed += 1;
                 events.push(
                     Event::default().event("chapter_error").data(
@@ -472,11 +455,7 @@ async fn do_download_book(
 
 // ── Cover download ──────────────────────────────────────────────────────────
 
-async fn download_and_upload_cover(
-    state: &Arc<AppState>,
-    book_id: Uuid,
-    cover_url: &str,
-) -> Result<String, AppError> {
+async fn download_and_upload_cover(state: &Arc<AppState>, book_id: Uuid, cover_url: &str) -> Result<String, AppError> {
     let resp = state
         .http_client
         .get(cover_url)
@@ -485,10 +464,7 @@ async fn download_and_upload_cover(
         .map_err(|e| AppError::BadRequest(format!("Failed to fetch cover: {e}")))?;
 
     if !resp.status().is_success() {
-        return Err(AppError::BadRequest(format!(
-            "Cover HTTP {}",
-            resp.status()
-        )));
+        return Err(AppError::BadRequest(format!("Cover HTTP {}", resp.status())));
     }
 
     let bytes = resp
@@ -660,11 +636,9 @@ async fn build_alt_chapter_map(title: &str, author: &str, primary_provider: &str
             for ch in &vol.chapters {
                 let norm = normalize_for_matching(&ch.title);
                 if !norm.is_empty() {
-                    map.entry(norm).or_default().push((
-                        provider.clone(),
-                        book_id.clone(),
-                        ch.chapter_id.clone(),
-                    ));
+                    map.entry(norm)
+                        .or_default()
+                        .push((provider.clone(), book_id.clone(), ch.chapter_id.clone()));
                 }
             }
         }
