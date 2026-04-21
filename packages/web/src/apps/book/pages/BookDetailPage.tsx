@@ -7,7 +7,7 @@ import {
   Image,
   Spin,
   Tag,
-} from "@tokiomo/components";
+} from "@tokimo/ui";
 import {
   BookOpen,
   ChevronDown,
