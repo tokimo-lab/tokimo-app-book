@@ -1,4 +1,4 @@
-import { AppSidebar, CircularProgress, Tooltip } from "@tokiomo/components";
+import { AppSidebar, CircularProgress, Tooltip } from "@tokimo/ui";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
 import type { BookContainerOutput } from "@/generated/rust-types/BookContainerOutput";
 import { getAvatarColor, getAvatarIcon } from "@/shared/avatar-utils";

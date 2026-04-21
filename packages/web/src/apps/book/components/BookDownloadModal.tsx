@@ -1,4 +1,4 @@
-import { Button, Empty, Modal, Spin, Tag } from "@tokiomo/components";
+import { Button, Empty, Modal, Spin, Tag } from "@tokimo/ui";
 import {
   BookOpen,
   ChevronRight,

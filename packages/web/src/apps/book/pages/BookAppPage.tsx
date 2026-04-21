@@ -1,4 +1,4 @@
-import { Empty, PosterCard, Spin, Tag } from "@tokiomo/components";
+import { Empty, PosterCard, Spin, Tag } from "@tokimo/ui";
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
