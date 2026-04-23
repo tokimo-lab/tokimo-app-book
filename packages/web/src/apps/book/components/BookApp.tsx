@@ -13,6 +13,9 @@ import BookSidebar from "./BookSidebar";
 
 const STORAGE_KEY = "book-active-library";
 
+/** See PHOTO_SCAN_JOB_TYPES. Backend: apps/book/handlers/sync.rs */
+const BOOK_SCAN_JOB_TYPES = ["book_scrape"] as const;
+
 const LoadingFallback = (
   <div className="flex h-full items-center justify-center">
     <Spin />
@@ -64,6 +67,7 @@ export default function BookApp() {
     libraries,
     progressQueryKey: (id) => api.book.getSyncProgress.queryKey({ id }),
     fetchProgress: (id) => api.book.getSyncProgress.fetch({ id }),
+    scanJobTypes: BOOK_SCAN_JOB_TYPES,
     onContentRefresh: () => {
       api.book.listItems.invalidate(queryClient);
     },
