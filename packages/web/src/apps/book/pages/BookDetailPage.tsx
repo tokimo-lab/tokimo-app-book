@@ -41,9 +41,9 @@ function serialStatusLabel(status: string | null | undefined): string {
 
 function serialStatusColor(
   status: string | null | undefined,
-): "green" | "blue" | "default" {
-  if (status === "completed") return "green";
-  if (status === "ongoing") return "blue";
+): "success" | "processing" | "default" {
+  if (status === "completed") return "success";
+  if (status === "ongoing") return "processing";
   return "default";
 }
 
