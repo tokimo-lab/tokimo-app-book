@@ -120,11 +120,7 @@ export default function BookApp() {
 
   return (
     <>
-      <div
-        ref={containerRef}
-        className="grid h-full"
-        style={{ gridTemplateColumns: `${sidebarCollapsed ? 48 : 200}px 1fr` }}
-      >
+      <div ref={containerRef} className="relative flex h-full">
         <BookSidebar
           libraries={libraries}
           activeId={activeLibraryId}
