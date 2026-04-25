@@ -8,8 +8,8 @@ import { useMenuBar, useMessage, useWindowNav } from "@/system";
 import BookDownloadModal from "./BookDownloadModal";
 
 export default function BookMenuBar({ children }: { children: ReactNode }) {
-  const { navigate } = useWindowNav();
-  const bookId = localStorage.getItem("book-active-library") ?? undefined;
+  const { navigate, params } = useWindowNav();
+  const bookId = params.libraryId ?? undefined;
   const message = useMessage();
   const qc = useQueryClient();
 
