@@ -15,6 +15,7 @@ export const manifest: AppManifest = {
   menuBar: () => import("./components/BookMenuBar"),
   views: {
     "/": () => import("./components/BookApp"),
+    "/library/:libraryId": () => import("./components/BookApp"),
     "/books/:bookId": () => import("./pages/BookDetailPage"),
   },
 
