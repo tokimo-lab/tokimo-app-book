@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Spin } from "@tokimo/ui";
 import { BookOpen, Plus } from "lucide-react";
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { AnimatedSettingsPane } from "@/apps/_framework/AnimatedSettingsPane";
 import BookLibraryEditor from "@/apps/settings/admin/BookLibraryEditor";
 import { api } from "@/generated/rust-api";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
@@ -179,39 +180,40 @@ export default function BookApp() {
         settingsActive={isSettingsView && !isDetailPage}
       />
       <div
-        className={`min-w-0 flex-1 overflow-auto${isDetailPage ? " px-3 py-3 lg:px-4 lg:py-4" : ""}`}
+        className={`relative min-w-0 flex-1 overflow-auto${isDetailPage ? " px-3 py-3 lg:px-4 lg:py-4" : ""}`}
       >
         {isDetailPage && LazyViewComponent ? (
           <Suspense fallback={LoadingFallback}>
             <LazyViewComponent />
           </Suspense>
-        ) : mode === "settings-new" ? (
-          <div className="animate-settings-pane-in h-full">
-            <BookLibraryEditor
-              key="__new__"
-              onSaved={handleSaved}
-              onCancel={handleCancel}
-            />
-          </div>
-        ) : mode === "settings" && activeLibraryId ? (
-          <div className="animate-settings-pane-in h-full">
-            <BookLibraryEditor
-              key={activeLibraryId}
-              bookId={activeLibraryId}
-              onSaved={handleSaved}
-              onDeleted={handleDeleted}
-              onCancel={handleCancel}
-            />
-          </div>
         ) : (
-          activeLibraryId &&
-          activeLibrary && (
-            <BookContent
-              key={activeLibraryId}
-              bookId={activeLibraryId}
-              syncing={!!syncProgress[activeLibraryId]?.isActive}
-            />
-          )
+          <>
+            {activeLibraryId && activeLibrary && mode === "content" && (
+              <BookContent
+                key={activeLibraryId}
+                bookId={activeLibraryId}
+                syncing={!!syncProgress[activeLibraryId]?.isActive}
+              />
+            )}
+            <AnimatedSettingsPane open={mode === "settings-new"}>
+              <BookLibraryEditor
+                key="__new__"
+                onSaved={handleSaved}
+                onCancel={handleCancel}
+              />
+            </AnimatedSettingsPane>
+            <AnimatedSettingsPane
+              open={mode === "settings" && !!activeLibraryId}
+            >
+              <BookLibraryEditor
+                key={activeLibraryId ?? "edit"}
+                bookId={activeLibraryId ?? undefined}
+                onSaved={handleSaved}
+                onDeleted={handleDeleted}
+                onCancel={handleCancel}
+              />
+            </AnimatedSettingsPane>
+          </>
         )}
       </div>
     </div>
