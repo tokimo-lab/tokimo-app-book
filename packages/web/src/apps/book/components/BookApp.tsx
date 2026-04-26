@@ -186,19 +186,23 @@ export default function BookApp() {
             <LazyViewComponent />
           </Suspense>
         ) : mode === "settings-new" ? (
-          <BookLibraryEditor
-            key="__new__"
-            onSaved={handleSaved}
-            onCancel={handleCancel}
-          />
+          <div className="animate-settings-pane-in h-full">
+            <BookLibraryEditor
+              key="__new__"
+              onSaved={handleSaved}
+              onCancel={handleCancel}
+            />
+          </div>
         ) : mode === "settings" && activeLibraryId ? (
-          <BookLibraryEditor
-            key={activeLibraryId}
-            bookId={activeLibraryId}
-            onSaved={handleSaved}
-            onDeleted={handleDeleted}
-            onCancel={handleCancel}
-          />
+          <div className="animate-settings-pane-in h-full">
+            <BookLibraryEditor
+              key={activeLibraryId}
+              bookId={activeLibraryId}
+              onSaved={handleSaved}
+              onDeleted={handleDeleted}
+              onCancel={handleCancel}
+            />
+          </div>
         ) : (
           activeLibraryId &&
           activeLibrary && (
