@@ -1,21 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Spin } from "@tokimo/ui";
-import { BookOpen, Plus } from "lucide-react";
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { AnimatedSettingsPane } from "@/apps/_framework/AnimatedSettingsPane";
-import BookLibraryEditor from "@/apps/settings/admin/BookLibraryEditor";
+import { AppSetupGuide, Spin } from "@tokimo/ui";
+import { FileText, Import, Library, Plus } from "lucide-react";
+import { Suspense, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/generated/rust-api";
 import { useContainerWidth } from "@/shared/hooks/use-container-width";
 import { useSidebarCollapsed } from "@/shared/hooks/use-sidebar-collapsed";
 import { useSyncProgress } from "@/shared/hooks/use-sync-progress";
-import { useWindowNav } from "@/system";
+import { useWindowActions, useWindowId, useWindowNav } from "@/system";
 import BookContent from "../pages/BookAppPage";
 import BookSidebar from "./BookSidebar";
 
 /** See PHOTO_SCAN_JOB_TYPES. Backend: apps/book/handlers/sync.rs */
 const BOOK_SCAN_JOB_TYPES = ["book_scrape"] as const;
-
-type ViewMode = "content" | "settings" | "settings-new";
 
 const LoadingFallback = (
   <div className="flex h-full items-center justify-center">
@@ -24,6 +21,7 @@ const LoadingFallback = (
 );
 
 export default function BookApp() {
+  const { t } = useTranslation();
   const { LazyViewComponent, params, replace, updateTitle } = useWindowNav();
   const { data: libraries, isLoading } = api.book.list.useQuery();
   const [containerRef, containerWidth] = useContainerWidth();
@@ -31,17 +29,11 @@ export default function BookApp() {
     "book",
     containerWidth > 0 && containerWidth < 720,
   );
-  const [mode, setMode] = useState<ViewMode>("content");
+
+  const windowId = useWindowId();
+  const { openModalWindow } = useWindowActions();
 
   const activeLibraryId = params.libraryId ?? null;
-
-  const openSettings = useCallback(() => {
-    setMode("settings");
-  }, []);
-
-  const openCreate = useCallback(() => {
-    setMode("settings-new");
-  }, []);
 
   useEffect(() => {
     if (!libraries?.length) return;
@@ -55,42 +47,36 @@ export default function BookApp() {
 
   const activeLibrary = libraries?.find((l) => l.id === activeLibraryId);
   const isDetailPage = !!params.bookId;
-  const isSettingsView = mode !== "content";
+
+  const openEditorModal = useCallback(
+    (opts: { bookId?: string } = {}) => {
+      openModalWindow({
+        component: () =>
+          import("@/apps/settings/admin/BookLibraryEditorWindow"),
+        parentWindowId: windowId,
+        title: opts.bookId
+          ? `TokimoBook · 设置`
+          : "TokimoBook · 新建书库",
+        width: 720,
+        height: 640,
+        noResize: true,
+        noMinimize: true,
+        metadata: opts.bookId
+          ? ({ bookId: opts.bookId } as Record<string, unknown>)
+          : undefined,
+      });
+    },
+    [openModalWindow, windowId],
+  );
 
   useEffect(() => {
-    if (isDetailPage) return;
-    if (mode === "settings-new") {
-      updateTitle("TokimoBook · 新建书库");
-    } else if (mode === "settings" && activeLibrary) {
-      updateTitle(`TokimoBook · ${activeLibrary.name} · 设置`);
-    } else if (activeLibrary) {
+    if (!isDetailPage && activeLibrary) {
       updateTitle(`TokimoBook · ${activeLibrary.name}`);
     }
-  }, [activeLibrary, mode, isDetailPage, updateTitle]);
+  }, [activeLibrary, isDetailPage, updateTitle]);
 
   const handleSelectLibrary = (id: string) => {
     replace(`/library/${id}`);
-    setMode("content");
-  };
-
-  const handleSaved = (savedId: string) => {
-    replace(`/library/${savedId}`);
-    setMode("content");
-  };
-
-  const handleDeleted = () => {
-    const remaining = (libraries ?? []).filter((l) => l.id !== activeLibraryId);
-    const next = remaining[0]?.id;
-    if (next) {
-      replace(`/library/${next}`);
-    } else {
-      replace("/");
-    }
-    setMode("content");
-  };
-
-  const handleCancel = () => {
-    setMode("content");
   };
 
   // ── Sync progress tracking (WS-driven + fallback polling) ──
@@ -118,51 +104,24 @@ export default function BookApp() {
   }
 
   if (!libraries?.length) {
-    if (mode === "settings-new") {
-      return (
-        <div ref={containerRef} className="relative flex h-full">
-          <BookSidebar
-            libraries={[]}
-            activeId={null}
-            onSelect={handleSelectLibrary}
-            collapsed={sidebarCollapsed}
-            onCreateClick={openCreate}
-            onSettingsClick={openSettings}
-            onToggleCollapse={onToggleCollapse}
-            settingsActive
-          />
-          <div className="min-w-0 flex-1 overflow-hidden h-full">
-            <BookLibraryEditor
-              key="__new__"
-              onSaved={handleSaved}
-              onCancel={handleCancel}
-            />
-          </div>
-        </div>
-      );
-    }
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-          <BookOpen className="h-8 w-8" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-fg-primary">
-            开始使用 TokimoBook
-          </h2>
-          <p className="mt-1 text-sm text-fg-muted">
-            创建一个书库来管理你的图书和小说
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
-        >
-          <Plus className="h-4 w-4" />
-          新建书库
-        </button>
-      </div>
+      <AppSetupGuide
+        imageSrc="/page-icons/book.png"
+        accentColor="amber"
+        title={t("common.setupGuide.getStarted", { name: "TokimoBook" })}
+        description={t("common.setupGuide.bookTagline")}
+        features={(
+          t("common.setupGuide.bookFeatures", {
+            returnObjects: true,
+          }) as string[]
+        ).map((label, i) => ({
+          icon: [Import, FileText, Library][i],
+          label,
+        }))}
+        actionLabel={t("common.setupGuide.bookAction")}
+        actionIcon={Plus}
+        onAction={() => openEditorModal()}
+      />
     );
   }
 
@@ -173,11 +132,12 @@ export default function BookApp() {
         activeId={activeLibraryId}
         onSelect={handleSelectLibrary}
         collapsed={sidebarCollapsed}
-        onCreateClick={openCreate}
-        onSettingsClick={openSettings}
+        onCreateClick={() => openEditorModal()}
+        onSettingsClick={() =>
+          activeLibraryId && openEditorModal({ bookId: activeLibraryId })
+        }
         syncProgress={syncProgress}
         onToggleCollapse={onToggleCollapse}
-        settingsActive={isSettingsView && !isDetailPage}
       />
       <div
         className={`relative min-w-0 flex-1 overflow-auto${isDetailPage ? " px-3 py-3 lg:px-4 lg:py-4" : ""}`}
@@ -187,33 +147,14 @@ export default function BookApp() {
             <LazyViewComponent />
           </Suspense>
         ) : (
-          <>
-            {activeLibraryId && activeLibrary && mode === "content" && (
-              <BookContent
-                key={activeLibraryId}
-                bookId={activeLibraryId}
-                syncing={!!syncProgress[activeLibraryId]?.isActive}
-              />
-            )}
-            <AnimatedSettingsPane open={mode === "settings-new"}>
-              <BookLibraryEditor
-                key="__new__"
-                onSaved={handleSaved}
-                onCancel={handleCancel}
-              />
-            </AnimatedSettingsPane>
-            <AnimatedSettingsPane
-              open={mode === "settings" && !!activeLibraryId}
-            >
-              <BookLibraryEditor
-                key={activeLibraryId ?? "edit"}
-                bookId={activeLibraryId ?? undefined}
-                onSaved={handleSaved}
-                onDeleted={handleDeleted}
-                onCancel={handleCancel}
-              />
-            </AnimatedSettingsPane>
-          </>
+          activeLibraryId &&
+          activeLibrary && (
+            <BookContent
+              key={activeLibraryId}
+              bookId={activeLibraryId}
+              syncing={!!syncProgress[activeLibraryId]?.isActive}
+            />
+          )
         )}
       </div>
     </div>
