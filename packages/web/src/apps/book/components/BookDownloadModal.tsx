@@ -11,6 +11,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { BookSearchResultOutput } from "@/generated/rust-types";
+import { authFetch } from "@/lib/auth-fetch";
 import { rustUrl } from "@/lib/rust-api-runtime";
 import { useBookDownload } from "../hooks/BookDownloadContext";
 
@@ -27,9 +28,8 @@ async function fetchSseEvents(
   onEvent: (evt: SseEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(rustUrl(url), {
+  const res = await authFetch(rustUrl(url), {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal,
