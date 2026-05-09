@@ -54,9 +54,7 @@ export default function BookApp() {
         component: () =>
           import("@/apps/settings/admin/BookLibraryEditorWindow"),
         parentWindowId: windowId,
-        title: opts.bookId
-          ? `TokimoBook · 设置`
-          : "TokimoBook · 新建书库",
+        title: opts.bookId ? `TokimoBook · 设置` : "TokimoBook · 新建书库",
         width: 720,
         height: 640,
         noResize: true,
