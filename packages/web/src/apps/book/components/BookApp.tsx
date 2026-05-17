@@ -8,6 +8,7 @@ import { useContainerWidth } from "@/shared/hooks/use-container-width";
 import { useSidebarCollapsed } from "@/shared/hooks/use-sidebar-collapsed";
 import { useSyncProgress } from "@/shared/hooks/use-sync-progress";
 import { useWindowActions, useWindowId, useWindowNav } from "@/system";
+import { PickCancelled, pickWithBridge } from "@/system/window-bridge";
 import BookContent from "../pages/BookAppPage";
 import BookSidebar from "./BookSidebar";
 
@@ -49,22 +50,31 @@ export default function BookApp() {
   const isDetailPage = !!params.bookId;
 
   const openEditorModal = useCallback(
-    (opts: { bookId?: string } = {}) => {
-      openModalWindow({
-        component: () =>
-          import("@/apps/settings/admin/BookLibraryEditorWindow"),
-        parentWindowId: windowId,
-        title: opts.bookId ? `TokimoBook · 设置` : "TokimoBook · 新建书库",
-        width: 720,
-        height: 640,
-        noResize: true,
-        noMinimize: true,
-        metadata: opts.bookId
-          ? ({ bookId: opts.bookId } as Record<string, unknown>)
-          : undefined,
-      });
+    async (opts: { bookId?: string } = {}) => {
+      const isEdit = !!opts.bookId;
+      try {
+        const created = await pickWithBridge<{ id: string }>(openModalWindow, {
+          component: () =>
+            import("@/apps/settings/admin/BookLibraryEditorWindow"),
+          parentWindowId: windowId,
+          title: isEdit ? "TokimoBook · 设置" : "TokimoBook · 新建书库",
+          width: 720,
+          height: 640,
+          noResize: true,
+          noMinimize: true,
+          metadata: isEdit
+            ? ({ bookId: opts.bookId } as Record<string, unknown>)
+            : undefined,
+        });
+        if (!isEdit) {
+          replace(`/library/${created.id}`);
+        }
+      } catch (err) {
+        if (err instanceof PickCancelled) return;
+        throw err;
+      }
     },
-    [openModalWindow, windowId],
+    [openModalWindow, windowId, replace],
   );
 
   useEffect(() => {
@@ -118,7 +128,9 @@ export default function BookApp() {
         }))}
         actionLabel={t("common.setupGuide.bookAction")}
         actionIcon={Plus}
-        onAction={() => openEditorModal()}
+        onAction={() => {
+          void openEditorModal();
+        }}
       />
     );
   }
@@ -130,10 +142,14 @@ export default function BookApp() {
         activeId={activeLibraryId}
         onSelect={handleSelectLibrary}
         collapsed={sidebarCollapsed}
-        onCreateClick={() => openEditorModal()}
-        onSettingsClick={() =>
-          activeLibraryId && openEditorModal({ bookId: activeLibraryId })
-        }
+        onCreateClick={() => {
+          void openEditorModal();
+        }}
+        onSettingsClick={() => {
+          if (activeLibraryId) {
+            void openEditorModal({ bookId: activeLibraryId });
+          }
+        }}
         syncProgress={syncProgress}
         onToggleCollapse={onToggleCollapse}
       />
