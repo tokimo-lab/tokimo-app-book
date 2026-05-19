@@ -55,16 +55,11 @@ pub async fn create_book(
         avatar: body.avatar,
         poster_path: None,
         scrape_enabled: body.scrape_enabled,
-        scrape_agents: body.scrape_agents,
         settings: None,
         sources: None,
     };
 
-    if update.avatar.is_some()
-        || update.description.is_some()
-        || update.scrape_enabled.is_some()
-        || update.scrape_agents.is_some()
-    {
+    if update.avatar.is_some() || update.description.is_some() || update.scrape_enabled.is_some() {
         needs_update = true;
     }
 
@@ -109,7 +104,6 @@ pub async fn update_book(
         avatar: body.avatar,
         poster_path: None,
         scrape_enabled: body.scrape_enabled,
-        scrape_agents: body.scrape_agents,
         settings: body.settings,
         sources: None,
     };
