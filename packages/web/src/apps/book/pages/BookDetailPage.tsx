@@ -125,23 +125,20 @@ function ChapterRow({
 }
 
 // ── Favorite Button ───────────────────────────────────────────────────────────
-function FavoriteButton({
-  isFavorite,
-  bookId,
-}: {
-  isFavorite: boolean;
-  bookId: string;
-}) {
-  // TODO(post-extraction): book favorite toggle not yet implemented
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const toggle = { mutate: (_: unknown) => {}, isPending: false };
+function FavoriteButton({ isFavorite }: { isFavorite: boolean }) {
+  // TODO(phase-6): book.toggleFavorite API not implemented yet.
+  // api.book in generated/rust-api/book.ts has no toggleFavorite endpoint.
+  // When the backend adds /api/book/:id/favorite, wire it here.
 
   return (
     <button
       type="button"
-      className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/[0.06] dark:hover:bg-white/[0.1]"
-      onClick={() => toggle.mutate({ type: "movie", id: bookId })}
-      title={isFavorite ? "取消收藏" : "收藏"}
+      className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-black/[0.06] dark:hover:bg-white/[0.1] opacity-50 cursor-not-allowed"
+      onClick={() => {
+        /* TODO(phase-6): no book favorite API yet */
+      }}
+      title="收藏（功能开发中）"
+      disabled
     >
       <Heart
         size={20}
@@ -260,10 +257,7 @@ export default function BookDetailPage() {
             <h1 className="text-2xl font-bold leading-tight md:text-3xl">
               {bookDetail.title}
             </h1>
-            <FavoriteButton
-              isFavorite={bookDetail.isFavorite}
-              bookId={bookDetail.id}
-            />
+            <FavoriteButton isFavorite={bookDetail.isFavorite} />
           </div>
 
           {bookDetail.originalTitle &&
