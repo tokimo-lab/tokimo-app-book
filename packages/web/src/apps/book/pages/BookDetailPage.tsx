@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftOutlined,
   Button,
@@ -133,10 +132,9 @@ function FavoriteButton({
   isFavorite: boolean;
   bookId: string;
 }) {
-  const qc = useQueryClient();
-  const toggle = api.video.toggleFavorite.useMutation({
-    onSuccess: () => void api.book.getItemDetail.invalidate(qc, { id: bookId }),
-  });
+  // TODO(post-extraction): book favorite toggle not yet implemented
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const toggle = { mutate: (_: unknown) => {}, isPending: false };
 
   return (
     <button
