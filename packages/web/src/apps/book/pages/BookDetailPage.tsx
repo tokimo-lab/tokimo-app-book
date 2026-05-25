@@ -23,7 +23,7 @@ import {
 import type { BookChapterOutput, BookVolumeOutput } from "@/generated/rust-api";
 import { api } from "@/generated/rust-api";
 import { posterThumbUrl } from "@/lib/thumb";
-import { useBackgroundArt, useWindowNav } from "@/system";
+import { type TaskMetadata, useBackgroundArt, useWindowNav } from "@/system";
 
 function formatWordCount(count: number | null | undefined): string {
   if (count == null) return "";
@@ -186,14 +186,14 @@ export default function BookDetailPage() {
   const handleOpenChapter = useCallback(
     (chapterId: string) => {
       if (!bookId) return;
+      const metadata = { bookId, chapterId };
       openWindow({
         type: "book",
         title: bookDetail?.title ?? "Book",
         route: `/chapters/${chapterId}`,
         sourceType: "book",
         sourceId: bookId,
-        bookId,
-        chapterId,
+        metadata: metadata as unknown as TaskMetadata,
       });
     },
     [openWindow, bookId, bookDetail?.title],
