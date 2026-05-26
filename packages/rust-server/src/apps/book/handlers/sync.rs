@@ -13,6 +13,7 @@ use crate::db::repos::book_repo::BookRepo;
 use crate::db::repos::job_repo::JobRepo;
 use crate::error::AppError;
 use crate::error::OptionExt;
+use crate::handlers::user::AuthUser;
 use crate::handlers::{ApiResponse, ok};
 use crate::services::app_sync::AppSyncService;
 
@@ -21,10 +22,15 @@ use super::{BookSyncInput, parse_uuid};
 /// POST /api/apps/book/{id}/sync
 pub async fn sync_book(
     State(state): State<Arc<AppState>>,
+    AuthUser(auth): AuthUser,
     Path(id): Path<String>,
     body: Option<Json<BookSyncInput>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let uid: Uuid = id.parse().map_err(|_| AppError::BadRequest("invalid book id".into()))?;
+    let auth_user_id: Uuid = auth
+        .user_id
+        .parse()
+        .map_err(|_| AppError::BadRequest("invalid user id in session".into()))?;
 
     let book = BookRepo::get_container_by_id(&state.db, uid)
         .await?
@@ -48,7 +54,7 @@ pub async fn sync_book(
     let storage = state.storage.clone();
 
     tokio::spawn(async move {
-        match AppSyncService::execute_book_sync(&db, &sources, &storage, uid, false).await {
+        match AppSyncService::execute_book_sync(&db, &sources, &storage, uid, Some(auth_user_id), false).await {
             Ok(result) => {
                 info!("book sync completed, {} jobs dispatched", result.total_jobs);
             }
