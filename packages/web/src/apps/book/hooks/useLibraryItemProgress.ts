@@ -2,17 +2,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/generated/rust-api";
 import type { BookContainerOutput } from "@/generated/rust-types";
+import {
+  type AppEntityEventData,
+  useAppEntityEvents,
+} from "@/system/events/useAppEntityEvents";
 import { useJobEvents } from "@/system/events/useJobEvents";
+import type { WsJobEvent } from "@/types";
 
 const BOOK_SCAN_JOB_TYPES = ["book_scrape"] as const;
-
-interface JobProgressData {
-  status: string;
-  completed: number;
-  running: number;
-  pending: number;
-  failed: number;
-}
 
 export interface BookLibraryProgressState {
   isActive: boolean;
@@ -26,6 +23,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function stringField(record: Record<string, unknown> | null, key: string) {
   const value = record?.[key];
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function numberField(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "number" ? value : null;
 }
 
 function extractBookLibraryId(job: {
@@ -45,17 +47,17 @@ function extractBookLibraryId(job: {
   );
 }
 
-function toProgressState(
-  data: JobProgressData,
-): BookLibraryProgressState | null {
-  const total = data.completed + data.running + data.pending + data.failed;
-  const isActive =
-    data.status === "syncing" || data.running > 0 || data.pending > 0;
-  if (!isActive) return null;
-  return {
-    isActive: true,
-    pct: total > 0 ? Math.round((data.completed / total) * 100) : 0,
-  };
+function getJobProgress(event: WsJobEvent) {
+  if (event.type !== "job_update") return 0;
+  const data = isRecord(event.job.data) ? event.job.data : null;
+  const rich = isRecord(data?.progress) ? data.progress : null;
+  const current = numberField(rich, "current");
+  const total = numberField(rich, "total");
+  const pct =
+    current !== null && total !== null && total > 0
+      ? Math.round((current / total) * 100)
+      : event.job.progress;
+  return Math.max(0, Math.min(100, pct));
 }
 
 export function useLibraryItemProgress(
@@ -63,11 +65,14 @@ export function useLibraryItemProgress(
 ): Record<string, BookLibraryProgressState> {
   const queryClient = useQueryClient();
   const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
-  const [progressMap, setProgressMap] = useState<
-    Record<string, BookLibraryProgressState>
-  >({});
+  const [progressPct, setProgressPct] = useState<Record<string, number>>({});
 
   const librariesRef = useRef<Set<string>>(new Set());
+  const pendingByLibraryRef = useRef(new Map<string, Set<string>>());
+  const entityRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   useEffect(() => {
     librariesRef.current = new Set(
       (libraries ?? []).map((library) => library.id),
@@ -85,130 +90,127 @@ export function useLibraryItemProgress(
       for (const id of syncing) next.add(id);
       return next.size === prev.size ? prev : next;
     });
+    setProgressPct((prev) => {
+      const next = { ...prev };
+      for (const id of syncing) next[id] ??= 0;
+      return next;
+    });
   }, [libraries]);
 
-  const fetchAllRef = useRef<(() => Promise<void>) | null>(null);
-  const wsFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const throttlePendingRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (entityRefreshTimerRef.current) {
+        clearTimeout(entityRefreshTimerRef.current);
+        entityRefreshTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   const refreshContent = useCallback(() => {
     api.book.listItems.invalidate(queryClient);
     api.book.list.invalidate(queryClient);
   }, [queryClient]);
 
-  const throttledRefresh = useCallback(() => {
-    if (throttleTimerRef.current) {
-      throttlePendingRef.current = true;
-      return;
-    }
-    refreshContent();
-    throttleTimerRef.current = setTimeout(() => {
-      throttleTimerRef.current = null;
-      if (throttlePendingRef.current) {
-        throttlePendingRef.current = false;
-        refreshContent();
-      }
-    }, 500);
+  const scheduleEntityRefresh = useCallback(() => {
+    if (entityRefreshTimerRef.current) return;
+    entityRefreshTimerRef.current = setTimeout(() => {
+      entityRefreshTimerRef.current = null;
+      refreshContent();
+    }, 800);
   }, [refreshContent]);
 
-  const { connected } = useJobEvents({
-    jobTypes: BOOK_SCAN_JOB_TYPES,
-    enabled: (libraries ?? []).length > 0,
-    onEvent: (event) => {
+  const handleJobEvent = useCallback(
+    (event: WsJobEvent) => {
       if (event.type !== "job_update") return;
       const libraryId = extractBookLibraryId(event.job);
       if (!libraryId || !librariesRef.current.has(libraryId)) return;
 
+      const jobId = event.job.id;
+      const status = event.job.status;
+      if (
+        status === "completed" ||
+        status === "partially_completed" ||
+        status === "failed" ||
+        status === "cancelled"
+      ) {
+        const pendingJobs = pendingByLibraryRef.current.get(libraryId);
+        if (pendingJobs) {
+          const wasNonEmpty = pendingJobs.size > 0;
+          pendingJobs.delete(jobId);
+          if (wasNonEmpty && pendingJobs.size === 0) {
+            refreshContent();
+            pendingByLibraryRef.current.delete(libraryId);
+          }
+        } else {
+          refreshContent();
+        }
+
+        setProgressPct((prev) => {
+          const next = { ...prev };
+          if (status === "completed") {
+            next[libraryId] = 100;
+          } else {
+            delete next[libraryId];
+          }
+          return next;
+        });
+        setActiveIds((prev) => {
+          const next = new Set(prev);
+          next.delete(libraryId);
+          return next.size === prev.size ? prev : next;
+        });
+        return;
+      }
+
+      if (status === "pending" || status === "running") {
+        let pendingJobs = pendingByLibraryRef.current.get(libraryId);
+        if (!pendingJobs) {
+          pendingJobs = new Set();
+          pendingByLibraryRef.current.set(libraryId, pendingJobs);
+        }
+        pendingJobs.add(jobId);
+      }
+
+      const pct = getJobProgress(event);
+      setProgressPct((prev) => ({ ...prev, [libraryId]: pct }));
       setActiveIds((prev) => {
         if (prev.has(libraryId)) return prev;
         const next = new Set(prev);
         next.add(libraryId);
         return next;
       });
-
-      queryClient.invalidateQueries({
-        queryKey: api.book.getSyncProgress.queryKey({ id: libraryId }),
-      });
-
-      if (wsFetchTimerRef.current) clearTimeout(wsFetchTimerRef.current);
-      wsFetchTimerRef.current = setTimeout(() => {
-        wsFetchTimerRef.current = null;
-        void fetchAllRef.current?.();
-      }, 1000);
-
-      if (event.job.status === "completed" || event.job.status === "failed") {
-        throttledRefresh();
-      }
     },
+    [refreshContent],
+  );
+
+  const handleEntityEvent = useCallback(
+    (event: AppEntityEventData) => {
+      const scope = event.scope ?? "";
+      const libraryId = scope.startsWith("library:")
+        ? scope.slice("library:".length)
+        : null;
+      if (!libraryId || !librariesRef.current.has(libraryId)) return;
+      scheduleEntityRefresh();
+    },
+    [scheduleEntityRefresh],
+  );
+
+  useJobEvents({
+    jobTypes: BOOK_SCAN_JOB_TYPES,
+    enabled: (libraries ?? []).length > 0,
+    onEvent: handleJobEvent,
   });
 
-  const fetchAll = useCallback(async () => {
-    const ids = Array.from(activeIds);
-    if (ids.length === 0) {
-      setProgressMap({});
-      return;
-    }
+  useAppEntityEvents({
+    appId: "book",
+    kind: "book_item",
+    onEvent: handleEntityEvent,
+  });
 
-    const nextProgress: Record<string, BookLibraryProgressState> = {};
-    const settledIds: string[] = [];
-
-    await Promise.all(
-      ids.map(async (id) => {
-        try {
-          const data = await queryClient.fetchQuery({
-            queryKey: api.book.getSyncProgress.queryKey({ id }),
-            queryFn: () => api.book.getSyncProgress.fetch({ id }),
-            staleTime: 1000,
-          });
-          const state = toProgressState(data);
-          if (state) {
-            nextProgress[id] = state;
-          } else {
-            settledIds.push(id);
-          }
-        } catch (err) {
-          console.warn("[book] failed to fetch sync progress", err);
-          nextProgress[id] = { isActive: true, pct: 0 };
-        }
-      }),
-    );
-
-    setProgressMap(nextProgress);
-    if (settledIds.length > 0) {
-      setActiveIds((prev) => {
-        const next = new Set(prev);
-        for (const id of settledIds) next.delete(id);
-        return next.size === prev.size ? prev : next;
-      });
-    }
-  }, [activeIds, queryClient]);
-
-  fetchAllRef.current = fetchAll;
-
-  useEffect(() => {
-    if (activeIds.size === 0) {
-      setProgressMap({});
-      return;
-    }
-    void fetchAll();
-    if (connected) return;
-    const pollTimer = setInterval(() => {
-      void fetchAll();
-    }, 5000);
-    return () => clearInterval(pollTimer);
-  }, [activeIds, connected, fetchAll]);
-
-  useEffect(() => {
-    return () => {
-      if (wsFetchTimerRef.current) clearTimeout(wsFetchTimerRef.current);
-      if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
-    };
-  }, []);
-
-  const result: Record<string, BookLibraryProgressState> = { ...progressMap };
+  const result: Record<string, BookLibraryProgressState> = {};
   for (const id of activeIds) {
-    result[id] ??= { isActive: true, pct: 0 };
+    result[id] = { isActive: true, pct: progressPct[id] ?? 0 };
   }
   return result;
 }
