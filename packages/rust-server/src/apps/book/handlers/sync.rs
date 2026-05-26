@@ -8,9 +8,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::db::ApiDateTimeExt;
-use crate::db::models::book::{BookSyncProgressOutput, BookTaskProgress};
 use crate::db::repos::book_repo::BookRepo;
-use crate::db::repos::job_repo::JobRepo;
 use crate::error::AppError;
 use crate::error::OptionExt;
 use crate::handlers::user::AuthUser;
@@ -82,59 +80,6 @@ pub async fn get_book_sync_status(
         "status": book.sync_status,
         "lastSyncAt": book.last_sync_at.to_api_datetime(),
     })))
-}
-
-/// GET /api/apps/book/{id}/sync-progress
-pub async fn get_book_sync_progress(
-    State(state): State<Arc<AppState>>,
-    Path(id): Path<String>,
-) -> Result<Json<ApiResponse<BookSyncProgressOutput>>, AppError> {
-    let uid = parse_uuid(&id)?;
-    let book = BookRepo::get_container_by_id(&state.db, uid)
-        .await?
-        .not_found(format!("book library {id} not found"))?;
-
-    let job_types = &["book_scrape"];
-    let (total, completed, running, pending, failed) = JobRepo::count_jobs_by_app(&state.db, uid, job_types).await?;
-
-    let rows = JobRepo::get_task_progress_by_app(&state.db, uid, job_types).await?;
-    let tasks: Vec<BookTaskProgress> = rows
-        .into_iter()
-        .map(|row| {
-            let status = if row.running > 0 {
-                "running"
-            } else if row.pending > 0 {
-                "pending"
-            } else if row.failed > 0 && row.completed == 0 {
-                "failed"
-            } else {
-                "completed"
-            };
-
-            let (total_items, processed_items) = {
-                let t = row.completed + row.running + row.pending + row.failed;
-                (t, row.completed)
-            };
-
-            BookTaskProgress {
-                task_type: row.job_type,
-                status: status.to_string(),
-                total_items,
-                processed_items,
-            }
-        })
-        .collect();
-
-    Ok(ok(BookSyncProgressOutput {
-        book_id: uid.to_string(),
-        status: book.sync_status,
-        total,
-        completed,
-        running,
-        pending,
-        failed,
-        tasks,
-    }))
 }
 
 /// GET /api/apps/book/sync-statuses
