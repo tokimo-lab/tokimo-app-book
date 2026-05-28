@@ -1,9 +1,16 @@
-import { useToast, useWindowNav } from "@tokimo/sdk";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useRuntimeCtx,
+  useWindowActions,
+  useWindowId,
+  useWindowNav,
+} from "@tokimo/sdk";
 import { AppSetupGuide, Spin } from "@tokimo/ui";
 import { FileText, Import, Library, Plus } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { bookApi } from "../api";
 import { useLibraryItemProgress } from "../hooks/useLibraryItemProgress";
+import { registerBridge } from "../modal-bridge";
 import BookAppPage from "../pages/BookAppPage";
 import BookDetailPage from "../pages/BookDetailPage";
 import {
@@ -15,7 +22,10 @@ import BookSidebar from "./BookSidebar";
 
 export default function BookApp() {
   const { route, replace } = useWindowNav();
-  const toast = useToast();
+  const windowId = useWindowId();
+  const { openModalWindow } = useWindowActions();
+  const ctx = useRuntimeCtx();
+  const qc = useQueryClient();
 
   const { libraryId: activeLibraryId, bookId } = parseBookRoute(route);
   const isDetailPage = !!bookId;
@@ -40,9 +50,45 @@ export default function BookApp() {
 
   const activeLibrary = libraries?.find((l) => l.id === activeLibraryId);
 
+  const openEditorModal = useCallback(
+    (opts: { bookId?: string } = {}) => {
+      const bridgeId = registerBridge({
+        kind: "library-editor",
+        ctx,
+        bookId: opts.bookId,
+        onSaved: () => {
+          bookApi.list.invalidate(qc);
+        },
+        onDeleted: () => {
+          bookApi.list.invalidate(qc);
+          if (activeLibraryId && libraries && libraries.length > 1) {
+            const remaining = libraries.filter((l) => l.id !== activeLibraryId);
+            if (remaining.length > 0) {
+              replace(`/library/${remaining[0].id}`);
+            }
+          }
+        },
+      });
+      const metadata: Record<string, unknown> = { bridgeId };
+      if (opts.bookId) metadata.bookId = opts.bookId;
+
+      openModalWindow({
+        component: () => import("./BookLibraryEditorWindow"),
+        parentWindowId: windowId,
+        title: opts.bookId ? "书库设置" : "创建书库",
+        width: 720,
+        height: 640,
+        noResize: true,
+        noMinimize: true,
+        metadata,
+      });
+    },
+    [ctx, openModalWindow, windowId, activeLibraryId, libraries, replace, qc],
+  );
+
   const handleAddLibrary = useCallback(() => {
-    toast.info("请通过 Tokimo 系统设置添加书库");
-  }, [toast]);
+    openEditorModal();
+  }, [openEditorModal]);
 
   const syncProgress = useLibraryItemProgress(libraries);
 
@@ -85,7 +131,9 @@ export default function BookApp() {
         onSelect={handleSelectLibrary}
         collapsed={sidebarCollapsed}
         onCreateClick={handleAddLibrary}
-        onSettingsClick={handleAddLibrary}
+        onSettingsClick={() =>
+          activeLibraryId && openEditorModal({ bookId: activeLibraryId })
+        }
         syncProgress={syncProgress}
         onToggleCollapse={onToggleCollapse}
       />

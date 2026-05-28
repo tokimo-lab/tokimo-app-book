@@ -16,6 +16,7 @@ import type {
   BookProviderOutput,
   BookSearchResultOutput,
   PagedResult,
+  VfsDto,
 } from "../types";
 
 // ── Fetch helpers ────────────────────────────────────────────────────────────
@@ -47,6 +48,18 @@ async function apiPost<T>(path: string, body: unknown): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function apiDelete<T>(path: string): Promise<T> {
+  return apiFetch<T>(path, { method: "DELETE" });
 }
 
 // ── Query key factory ────────────────────────────────────────────────────────
@@ -185,6 +198,99 @@ export const bookApi = {
         staleTime: 60_000,
       }),
   },
+
+  create: {
+    useMutation: (opts?: {
+      onSuccess?: (data: BookContainerOutput) => void;
+      onError?: (err: Error) => void;
+    }) =>
+      useMutation({
+        mutationFn: (input: {
+          name: string;
+          type: string;
+          avatar: Record<string, unknown> | null;
+          description: string | null;
+          sources: Array<{
+            sourceId: string;
+            rootPath: string;
+            sortOrder: number;
+            isDefaultDownload: boolean;
+          }>;
+        }) => apiPost<BookContainerOutput>("/api/apps/book", input),
+        onSuccess: opts?.onSuccess,
+        onError: opts?.onError,
+      }),
+  },
+
+  update: {
+    useMutation: (opts?: {
+      onSuccess?: () => void;
+      onError?: (err: Error) => void;
+    }) =>
+      useMutation({
+        mutationFn: (input: {
+          id: string;
+          name: string;
+          avatar: Record<string, unknown> | null;
+          description: string | null;
+          sources: Array<{
+            sourceId: string;
+            rootPath: string;
+            sortOrder: number;
+            isDefaultDownload: boolean;
+          }>;
+        }) => {
+          const { id, ...body } = input;
+          return apiPatch<void>(
+            `/api/apps/book/${encodeURIComponent(id)}`,
+            body,
+          );
+        },
+        onSuccess: opts?.onSuccess,
+        onError: opts?.onError,
+      }),
+  },
+
+  delete: {
+    useMutation: (opts?: {
+      onSuccess?: () => void;
+      onError?: (err: Error) => void;
+    }) =>
+      useMutation({
+        mutationFn: (id: string) =>
+          apiDelete<void>(`/api/apps/book/${encodeURIComponent(id)}`),
+        onSuccess: opts?.onSuccess,
+        onError: opts?.onError,
+      }),
+  },
+
+  reorder: {
+    useMutation: (opts?: {
+      onSuccess?: () => void;
+      onError?: (err: Error) => void;
+    }) =>
+      useMutation({
+        mutationFn: (ids: string[]) =>
+          apiPost<void>("/api/apps/book/reorder", { ids }),
+        onSuccess: opts?.onSuccess,
+        onError: opts?.onError,
+      }),
+  },
+};
+
+export const vfsApi = {
+  list: {
+    useQuery: () =>
+      useQuery({
+        queryKey: ["vfs", "list"],
+        queryFn: () => apiFetch<VfsDto[]>("/api/vfs"),
+      }),
+  },
+};
+
+export const api = {
+  book: bookApi,
+  vfs: vfsApi,
 };
 
 export function useBookQueryClient() {

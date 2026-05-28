@@ -4,9 +4,22 @@
 export interface BookContainerOutput {
   id: string;
   name: string;
+  type?: string;
   avatar: unknown;
+  description?: string | null;
   itemCount: number;
   syncStatus: string | null;
+  sources?: StorageBinding[];
+  rootPath?: string | null;
+  sourceId?: string | null;
+  sourceType?: string | null;
+}
+
+export interface StorageBinding {
+  sourceId: string;
+  rootPath: string;
+  sortOrder?: number;
+  isDefaultDownload?: boolean;
 }
 
 export interface BookOutput {
@@ -86,4 +99,10 @@ export interface PagedResult<T> {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface VfsDto {
+  id: string;
+  name: string;
+  type: string;
 }
