@@ -45,6 +45,7 @@ fn ok<T>(data: T) -> Json<ApiResponse<T>> {
 
 #[derive(Debug, Deserialize)]
 pub struct ListBooksQuery {
+    #[allow(dead_code)]
     user_id: Option<Uuid>,
 }
 
@@ -69,12 +70,9 @@ impl ListItemsQuery {
 
 pub async fn list_books(
     State(ctx): State<Arc<AppCtx>>,
-    Query(q): Query<ListBooksQuery>,
+    Query(_q): Query<ListBooksQuery>,
 ) -> Result<Json<ApiResponse<Vec<containers::Model>>>, AppError> {
-    let user_id = q
-        .user_id
-        .ok_or_else(|| AppError::BadRequest("user_id is required".to_string()))?;
-    Ok(ok(ContainersRepo::list_by_user(&ctx.db, user_id).await?))
+    Ok(ok(ContainersRepo::list_all(&ctx.db).await?))
 }
 
 pub async fn get_book(

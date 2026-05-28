@@ -9,6 +9,18 @@ use crate::{
 pub struct ContainersRepo;
 
 impl ContainersRepo {
+    /// List all containers (MVP: matches music/photo pattern; auth filtering deferred).
+    pub async fn list_all<C: ConnectionTrait>(db: &C) -> Result<Vec<containers::Model>, AppError> {
+        Ok(Containers::find()
+            .order_by_asc(containers::Column::SortOrder)
+            .order_by_desc(containers::Column::CreatedAt)
+            .order_by_asc(containers::Column::Name)
+            .order_by_asc(containers::Column::Id)
+            .all(db)
+            .await?)
+    }
+
+    #[allow(dead_code)]
     pub async fn list_by_user<C: ConnectionTrait>(db: &C, user_id: Uuid) -> Result<Vec<containers::Model>, AppError> {
         Ok(Containers::find()
             .filter(containers::Column::UserId.eq(user_id))
