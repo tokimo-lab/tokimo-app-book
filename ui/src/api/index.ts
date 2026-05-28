@@ -1,0 +1,177 @@
+/**
+ * Typed React Query hooks for the Book app API endpoints.
+ * All paths hit /api/apps/book/... which the shell proxies to the sidecar.
+ */
+
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import type {
+  BookContainerOutput,
+  BookDetailOutput,
+  BookProviderOutput,
+  BookSearchResultOutput,
+  PagedResult,
+  BookOutput,
+} from "../types";
+
+// ── Fetch helpers ────────────────────────────────────────────────────────────
+
+async function apiFetch<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(path, { credentials: "include", ...init });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (typeof body.error === "string") msg = body.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(msg);
+  }
+  const json = (await res.json()) as { success: boolean; data: T; error?: string };
+  if (!json.success) throw new Error(json.error ?? "API error");
+  return json.data;
+}
+
+async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Query key factory ────────────────────────────────────────────────────────
+
+const keys = {
+  list: ["book", "list"] as const,
+  listItems: (id: string, page: number, pageSize: number, sortBy: string, sortDir: string) =>
+    ["book", "items", id, page, pageSize, sortBy, sortDir] as const,
+  detail: (id: string) => ["book", "detail", id] as const,
+  providers: ["book", "providers"] as const,
+  search: (query: string, libraryId: string) => ["book", "search", query, libraryId] as const,
+};
+
+// ── API hooks ────────────────────────────────────────────────────────────────
+
+export const bookApi = {
+  list: {
+    useQuery: () =>
+      useQuery({
+        queryKey: keys.list,
+        queryFn: () => apiFetch<BookContainerOutput[]>("/api/apps/book"),
+      }),
+    invalidate: (qc: QueryClient) => qc.invalidateQueries({ queryKey: keys.list }),
+  },
+
+  listItems: {
+    useQuery: (params: {
+      id: string;
+      page: number;
+      pageSize: number;
+      sortBy: string;
+      sortDir: string;
+    }) => {
+      const { id, page, pageSize, sortBy, sortDir } = params;
+      const searchParams = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        sortBy,
+        sortDir,
+      });
+      return useQuery({
+        queryKey: keys.listItems(id, page, pageSize, sortBy, sortDir),
+        queryFn: () =>
+          apiFetch<PagedResult<BookOutput>>(
+            `/api/apps/book/${encodeURIComponent(id)}/items?${searchParams}`,
+          ),
+        enabled: !!id,
+      });
+    },
+    invalidate: (qc: QueryClient) =>
+      qc.invalidateQueries({ queryKey: ["book", "items"] }),
+  },
+
+  getItemDetail: {
+    useQuery: (params: { id: string }, opts?: { enabled?: boolean }) =>
+      useQuery({
+        queryKey: keys.detail(params.id),
+        queryFn: () =>
+          apiFetch<BookDetailOutput | null>(
+            `/api/apps/book/item/${encodeURIComponent(params.id)}`,
+          ),
+        enabled: opts?.enabled !== false && !!params.id,
+      }),
+  },
+
+  sync: {
+    useMutation: (opts?: {
+      onSuccess?: () => void;
+      onError?: (err: Error) => void;
+    }) =>
+      useMutation({
+        mutationFn: (input: { id: string; clearData?: boolean }) => {
+          const { id, ...body } = input;
+          return apiPost<{ success: boolean }>(
+            `/api/apps/book/${encodeURIComponent(id)}/sync`,
+            body,
+          );
+        },
+        onSuccess: opts?.onSuccess,
+        onError: opts?.onError,
+      }),
+  },
+
+  listProviders: {
+    useQuery: (opts?: { staleTime?: number }) =>
+      useQuery({
+        queryKey: keys.providers,
+        queryFn: () => apiFetch<BookProviderOutput[]>("/api/apps/book/providers"),
+        staleTime: opts?.staleTime,
+      }),
+  },
+
+  getBookInfo: {
+    useMutation: () =>
+      useMutation({
+        mutationFn: (input: { provider: string; bookId: string }) =>
+          apiPost<{
+            bookName: string;
+            author: string;
+            summary: string;
+            coverUrl: string;
+            updateTime: string;
+            wordCount: string;
+            serialStatus: string;
+            totalChapters: number;
+          }>("/api/apps/book/book-info", input),
+      }),
+  },
+
+  search: {
+    useQuery: (params: { query: string; libraryId: string }, opts?: { enabled?: boolean }) =>
+      useQuery({
+        queryKey: keys.search(params.query, params.libraryId),
+        queryFn: () => {
+          const sp = new URLSearchParams({
+            q: params.query,
+            libraryId: params.libraryId,
+          });
+          return apiFetch<BookSearchResultOutput[]>(`/api/apps/book/search?${sp}`);
+        },
+        enabled: opts?.enabled !== false && !!params.query && !!params.libraryId,
+        staleTime: 60_000,
+      }),
+  },
+};
+
+export function useBookQueryClient() {
+  return useQueryClient();
+}
