@@ -22,7 +22,7 @@ export default defineApp({
     icon: "BookOpen",
     image: "icon.png",
     color: "#D97706",
-    windowType: "book",
+    windowType: "tokimo-book",
     defaultSize: { width: 1200, height: 820 },
     category: "page",
   },

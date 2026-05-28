@@ -11,7 +11,7 @@ ui_dist      = "ui/dist"
 
 [ui]
 entry        = "assets/index.js"
-window_type  = "book"
+window_type  = "tokimo-book"
 category     = "system"
 icon         = "BookOpen"
 image        = "icon.png"
