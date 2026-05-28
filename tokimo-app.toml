@@ -1,0 +1,24 @@
+[app]
+id          = "book"
+display     = "Book"
+version     = "0.1.0"
+description = "Tokimo 图书应用 — 小说/漫画/电子书多库管理"
+
+[runtime]
+lifecycle    = "resident"
+binary       = "tokimo-app-book"
+ui_dist      = "ui/dist"
+
+[ui]
+entry        = "assets/index.js"
+window_type  = "book"
+category     = "system"
+icon         = "BookOpen"
+image        = "icon.png"
+color        = "#8b5cf6"
+width        = 1200
+height       = 800
+
+[cli]
+name = "tokimo-app-book"
+description = "Manage book libraries (novels, manga, ebooks)."
