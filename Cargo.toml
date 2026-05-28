@@ -14,6 +14,7 @@ tokimo-bus-cli      = { git = "https://github.com/tokimo-lab/tokimo-bus.git", re
 
 clap              = { version = "4", features = ["derive", "env"] }
 tokio             = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "sync"] }
+tokio-stream      = "0.1"
 tracing           = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde             = { version = "1", features = ["derive"] }
@@ -26,6 +27,16 @@ axum              = { version = "0.8", features = ["json"] }
 sea-orm           = { version = "2.0.0-rc.38", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "with-uuid", "with-chrono", "with-json", "macros"] }
 chrono            = { version = "0.4", features = ["serde"] }
 urlencoding       = "2"
+novel-downloader = { path = "../../packages/novel-downloader-rs" }
+bookfinder       = { path = "../../packages/bookfinder" }
+tokimo-vfs       = { path = "../../packages/tokimo-package-vfs/packages/fs" }
+futures-util     = "0.3"
+async-stream     = "0.3"
+regex            = "1"
+zip              = { version = "2", default-features = false, features = ["deflate"] }
+quick-xml        = "0.36"
+lopdf            = "0.38"
+sha2             = "0.10"
 
 [lints]
 workspace = true

@@ -5,12 +5,14 @@ const MANIFEST: &str = include_str!("../tokimo-app.toml");
 
 mod app_server;
 mod assets;
+mod bus_clients;
 mod cli;
 mod ctx;
 mod db;
 #[allow(dead_code)]
 mod error;
 mod handlers;
+mod services;
 
 use std::sync::{Arc, OnceLock};
 
