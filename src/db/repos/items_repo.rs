@@ -37,17 +37,23 @@ impl ItemsRepo {
         container_id: Uuid,
         page: u64,
         page_size: u64,
+        search: Option<&str>,
     ) -> Result<(Vec<items::Model>, u64), AppError> {
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
         let offset = (page - 1) * page_size;
 
-        let total = Items::find()
-            .filter(items::Column::ContainerId.eq(container_id))
-            .count(db)
-            .await?;
-        let items = Items::find()
-            .filter(items::Column::ContainerId.eq(container_id))
+        let mut query = Items::find().filter(items::Column::ContainerId.eq(container_id));
+        if let Some(search) = search.filter(|s| !s.trim().is_empty()) {
+            let pattern = format!("%{}%", search.trim());
+            query = query.filter(
+                sea_orm::Condition::any()
+                    .add(items::Column::Title.like(&pattern))
+                    .add(items::Column::Author.like(&pattern)),
+            );
+        }
+        let total = query.clone().count(db).await?;
+        let items = query
             .order_by_asc(items::Column::Title)
             .order_by_asc(items::Column::Id)
             .limit(page_size)
@@ -113,6 +119,36 @@ impl ItemsRepo {
         }
         am.updated_at = Set(chrono::Utc::now().into());
         Ok(am.update(db).await?)
+    }
+
+    pub async fn get_by_file_path<C: ConnectionTrait>(
+        db: &C,
+        container_id: Uuid,
+        file_path: &str,
+    ) -> Result<Option<items::Model>, AppError> {
+        Ok(Items::find()
+            .filter(items::Column::ContainerId.eq(container_id))
+            .filter(items::Column::FilePath.eq(file_path))
+            .one(db)
+            .await?)
+    }
+
+    pub async fn upsert_scanned_file<C: ConnectionTrait>(
+        db: &C,
+        params: CreateItemParams,
+    ) -> Result<items::Model, AppError> {
+        if let Some(existing) = Self::get_by_file_path(db, params.container_id, &params.file_path).await? {
+            let mut am: ItemsActive = existing.into();
+            am.title = Set(params.title);
+            am.author = Set(params.author);
+            am.format = Set(params.format);
+            am.size_bytes = Set(params.size_bytes);
+            am.content = Set(params.content);
+            am.metadata = Set(params.metadata);
+            am.updated_at = Set(chrono::Utc::now().into());
+            return Ok(am.update(db).await?);
+        }
+        Self::create(db, params).await
     }
 
     pub async fn delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<(), AppError> {

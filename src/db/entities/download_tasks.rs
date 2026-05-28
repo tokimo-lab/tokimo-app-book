@@ -17,6 +17,8 @@ pub struct Model {
     pub item_id: Option<Uuid>,
     #[sea_orm(column_type = "Text", nullable)]
     pub error: Option<String>,
+    #[sea_orm(column_type = "JsonBinary", nullable)]
+    pub progress: Option<Json>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

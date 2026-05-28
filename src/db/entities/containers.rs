@@ -14,6 +14,7 @@ pub struct Model {
     pub source_type: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub root_path: String,
+    pub sort_order: i32,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

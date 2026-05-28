@@ -1,4 +1,4 @@
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set};
+use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set, TransactionTrait};
 use uuid::Uuid;
 
 use crate::{
@@ -12,6 +12,7 @@ impl ContainersRepo {
     pub async fn list_by_user<C: ConnectionTrait>(db: &C, user_id: Uuid) -> Result<Vec<containers::Model>, AppError> {
         Ok(Containers::find()
             .filter(containers::Column::UserId.eq(user_id))
+            .order_by_asc(containers::Column::SortOrder)
             .order_by_desc(containers::Column::CreatedAt)
             .order_by_asc(containers::Column::Name)
             .order_by_asc(containers::Column::Id)
@@ -37,11 +38,32 @@ impl ContainersRepo {
             name: Set(name),
             kind: Set(kind),
             root_path: Set(root_path),
+            sort_order: Set(0),
             created_at: Set(now),
             updated_at: Set(now),
             ..Default::default()
         };
         Ok(Containers::insert(am).exec_with_returning(db).await?)
+    }
+
+    pub async fn reorder(db: &sea_orm::DatabaseConnection, ids: Vec<Uuid>) -> Result<(), AppError> {
+        let txn = db.begin().await?;
+        for (idx, id) in ids.into_iter().enumerate() {
+            Containers::update_many()
+                .col_expr(
+                    containers::Column::SortOrder,
+                    sea_orm::sea_query::Expr::value(idx as i32),
+                )
+                .col_expr(
+                    containers::Column::UpdatedAt,
+                    sea_orm::sea_query::Expr::value(chrono::Utc::now().fixed_offset()),
+                )
+                .filter(containers::Column::Id.eq(id))
+                .exec(&txn)
+                .await?;
+        }
+        txn.commit().await?;
+        Ok(())
     }
 
     #[allow(dead_code)]

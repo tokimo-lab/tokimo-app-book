@@ -7,7 +7,6 @@ pub enum AppError {
     NotFound(String),
     BadRequest(String),
     Internal(String),
-    NotImplemented(String),
 }
 
 impl std::fmt::Display for AppError {
@@ -16,7 +15,6 @@ impl std::fmt::Display for AppError {
             Self::NotFound(msg) => write!(f, "not found: {msg}"),
             Self::BadRequest(msg) => write!(f, "bad request: {msg}"),
             Self::Internal(msg) => write!(f, "internal: {msg}"),
-            Self::NotImplemented(msg) => write!(f, "not implemented: {msg}"),
         }
     }
 }
@@ -35,7 +33,6 @@ impl IntoResponse for AppError {
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
             Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::NotImplemented(_) => StatusCode::NOT_IMPLEMENTED,
         };
         let body = serde_json::json!({
             "success": false,
