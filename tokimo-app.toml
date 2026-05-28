@@ -22,3 +22,8 @@ height       = 800
 [cli]
 name = "tokimo-app-book"
 description = "Manage book libraries (novels, manga, ebooks)."
+
+[database]
+schema = "book"
+migrations_dir = "migrations"
+driver = "postgres"
