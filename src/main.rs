@@ -7,6 +7,7 @@ mod app_server;
 mod assets;
 mod cli;
 mod ctx;
+mod db;
 #[allow(dead_code)]
 mod error;
 mod handlers;
@@ -73,13 +74,15 @@ async fn run_server() -> anyhow::Result<()> {
     let cfg = ClientConfig::from_env().map_err(|e| anyhow::anyhow!("ClientConfig: {e}"))?;
     info!(endpoint = ?cfg.endpoint, "book: connecting to broker");
 
+    let db = db::init_pool().await?;
     let client_slot: Arc<OnceLock<Arc<BusClient>>> = Arc::new(OnceLock::new());
     let context = Arc::new(ctx::AppCtx {
+        db,
         client: Arc::clone(&client_slot),
     });
 
-    let app_socket = app_server::spawn("book", Arc::clone(&context))
-        .map_err(|e| anyhow::anyhow!("app_server spawn: {e}"))?;
+    let app_socket =
+        app_server::spawn("book", Arc::clone(&context)).map_err(|e| anyhow::anyhow!("app_server spawn: {e}"))?;
 
     let client = BusClient::builder(cfg)
         .service("book", env!("CARGO_PKG_VERSION"))

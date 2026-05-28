@@ -23,6 +23,12 @@ impl std::fmt::Display for AppError {
 
 impl std::error::Error for AppError {}
 
+impl From<sea_orm::DbErr> for AppError {
+    fn from(error: sea_orm::DbErr) -> Self {
+        Self::Internal(format!("db: {error}"))
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match &self {

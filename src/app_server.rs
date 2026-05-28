@@ -13,11 +13,11 @@ use tracing::{error, info};
 
 use crate::{assets, ctx::AppCtx, handlers};
 
-pub fn spawn(service: &str, _ctx: Arc<AppCtx>) -> anyhow::Result<DataPlaneSocket> {
+pub fn spawn(service: &str, ctx: Arc<AppCtx>) -> anyhow::Result<DataPlaneSocket> {
     let (listener, socket) = BusListener::bind_for_app(service)?;
     info!(?socket, "book: app server listening");
 
-    let router = build_router();
+    let router = build_router(ctx);
 
     tokio::spawn(async move {
         if let Err(e) = axum::serve(listener, router).await {
@@ -28,7 +28,7 @@ pub fn spawn(service: &str, _ctx: Arc<AppCtx>) -> anyhow::Result<DataPlaneSocket
     Ok(socket)
 }
 
-fn build_router() -> Router {
+fn build_router(ctx: Arc<AppCtx>) -> Router {
     Router::new()
         // ── Container CRUD ──
         .route("/", get(handlers::list_books).post(handlers::create_book))
@@ -58,4 +58,5 @@ fn build_router() -> Router {
         .route("/{id}/sync-status", get(handlers::get_book_sync_status))
         // ── Assets ──
         .route("/assets/{*path}", get(assets::serve))
+        .with_state(ctx)
 }

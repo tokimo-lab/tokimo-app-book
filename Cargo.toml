@@ -23,6 +23,9 @@ rust-embed        = { version = "8", features = ["debug-embed"] }
 mime_guess        = "2"
 anyhow            = "1"
 axum              = { version = "0.8", features = ["json"] }
+sea-orm           = { version = "2.0.0-rc.38", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "with-uuid", "with-chrono", "with-json", "macros"] }
+chrono            = { version = "0.4", features = ["serde"] }
+urlencoding       = "2"
 
 [lints]
 workspace = true

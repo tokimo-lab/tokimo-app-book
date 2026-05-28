@@ -2,8 +2,10 @@
 
 use axum::http::{HeaderValue, header};
 use axum::response::{IntoResponse, Response};
+#[cfg(not(debug_assertions))]
 use rust_embed::Embed;
 
+#[cfg(not(debug_assertions))]
 #[derive(Embed)]
 #[folder = "ui/dist/"]
 #[prefix = ""]
@@ -36,20 +38,21 @@ pub async fn serve(path: Option<axum::extract::Path<String>>) -> impl IntoRespon
         }
     }
 
-    // 生产模式：从嵌入资源读取
+    // 生产模式：从嵌入资源读取。
+    #[cfg(not(debug_assertions))]
     if let Some(content) = EmbeddedUi::get(&path) {
         let mime = mime_from_path(&path);
-        Response::builder()
+        return Response::builder()
             .header(header::CONTENT_TYPE, mime)
             .header(header::CACHE_CONTROL, "no-store")
             .body(axum::body::Body::from(content.data.to_vec()))
-            .unwrap()
-    } else {
-        Response::builder()
-            .status(404)
-            .body(axum::body::Body::from("not found"))
-            .unwrap()
+            .unwrap();
     }
+
+    Response::builder()
+        .status(404)
+        .body(axum::body::Body::from("not found"))
+        .unwrap()
 }
 
 fn mime_from_path(path: &str) -> HeaderValue {
