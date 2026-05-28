@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { bookApi } from "../api";
-import type { BookSearchResultOutput } from "../types";
 import { useBookDownload } from "../hooks/BookDownloadContext";
+import type { BookSearchResultOutput } from "../types";
 
 // ── SSE helpers ───────────────────────────────────────────────────────────────
 
@@ -152,12 +152,15 @@ export default function BookDownloadModal({
   const abortRef = useRef<AbortController | null>(null);
 
   const [selectedBook, setSelectedBook] = useState<RankedBook | null>(null);
-  const [selectedSource, setSelectedSource] = useState<BookSearchResultOutput | null>(null);
+  const [selectedSource, setSelectedSource] =
+    useState<BookSearchResultOutput | null>(null);
   const [bookInfo, setBookInfo] = useState<BookInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [yearInput, setYearInput] = useState("");
 
-  const providersQuery = bookApi.listProviders.useQuery({ staleTime: 5 * 60_000 });
+  const providersQuery = bookApi.listProviders.useQuery({
+    staleTime: 5 * 60_000,
+  });
   const bookInfoMutation = bookApi.getBookInfo.useMutation();
 
   const rankedBooks = useMemo(
@@ -310,20 +313,28 @@ export default function BookDownloadModal({
             <div className="space-y-4">
               <div className="space-y-2 text-sm">
                 <div className="flex gap-2">
-                  <span className="w-16 shrink-0 text-[var(--text-muted)]">📖 书名</span>
+                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                    📖 书名
+                  </span>
                   <span className="font-medium">{bookInfo.bookName}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="w-16 shrink-0 text-[var(--text-muted)]">✍️ 作者</span>
+                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                    ✍️ 作者
+                  </span>
                   <span>{bookInfo.author || "—"}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="w-16 shrink-0 text-[var(--text-muted)]">🌐 来源</span>
+                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                    🌐 来源
+                  </span>
                   <Tag className="!text-[10px]">{selectedSource.site}</Tag>
                 </div>
                 {bookInfo.summary && (
                   <div className="flex gap-2">
-                    <span className="w-16 shrink-0 text-[var(--text-muted)]">📝 简介</span>
+                    <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                      📝 简介
+                    </span>
                     <span className="line-clamp-3 text-[var(--text-secondary)]">
                       {bookInfo.summary}
                     </span>
@@ -333,9 +344,13 @@ export default function BookDownloadModal({
                   <span className="text-[var(--text-muted)]">
                     📊 {bookInfo.serialStatus || "—"}
                   </span>
-                  <span className="text-[var(--text-muted)]">章节: {bookInfo.totalChapters}</span>
+                  <span className="text-[var(--text-muted)]">
+                    章节: {bookInfo.totalChapters}
+                  </span>
                   {bookInfo.wordCount && (
-                    <span className="text-[var(--text-muted)]">字数: {bookInfo.wordCount}</span>
+                    <span className="text-[var(--text-muted)]">
+                      字数: {bookInfo.wordCount}
+                    </span>
                   )}
                 </div>
               </div>
@@ -346,7 +361,9 @@ export default function BookDownloadModal({
                     <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                       <Globe size={14} />
                       <span>下载源</span>
-                      <Tag className="!text-[10px]">{selectedBook.sources.length} 个可用</Tag>
+                      <Tag className="!text-[10px]">
+                        {selectedBook.sources.length} 个可用
+                      </Tag>
                     </div>
                     <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border-base p-1">
                       {selectedBook.sources.map((source) => {
@@ -367,7 +384,9 @@ export default function BookDownloadModal({
                             }`}
                           >
                             <div className="flex min-w-0 items-center gap-2">
-                              <Tag className={`!text-[10px] shrink-0 ${isActive ? "!bg-[var(--accent)]/20 !text-[var(--accent)]" : ""}`}>
+                              <Tag
+                                className={`!text-[10px] shrink-0 ${isActive ? "!bg-[var(--accent)]/20 !text-[var(--accent)]" : ""}`}
+                              >
                                 {source.site}
                               </Tag>
                               {source.latestChapter && (
@@ -388,11 +407,15 @@ export default function BookDownloadModal({
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">目标应用</span>
+                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
+                    目标应用
+                  </span>
                   <span className="text-sm font-medium">{appName}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">年份 (可选)</span>
+                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
+                    年份 (可选)
+                  </span>
                   <input
                     className="h-9 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
                     placeholder="2005"
@@ -431,7 +454,8 @@ export default function BookDownloadModal({
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.nativeEvent.isComposing) handleSearch();
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing)
+                    handleSearch();
                 }}
               />
               {keyword && (
@@ -471,13 +495,18 @@ export default function BookDownloadModal({
                   最佳匹配
                 </span>
                 {rankedBooks[0].sources.length > 1 && (
-                  <Tag className="!text-[10px]">{rankedBooks[0].sources.length} 个源</Tag>
+                  <Tag className="!text-[10px]">
+                    {rankedBooks[0].sources.length} 个源
+                  </Tag>
                 )}
               </div>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <BookOpen size={16} className="shrink-0 text-[var(--accent)]" />
+                    <BookOpen
+                      size={16}
+                      className="shrink-0 text-[var(--accent)]"
+                    />
                     <span className="text-sm font-semibold text-[var(--text-primary)]">
                       {rankedBooks[0].best.title}
                     </span>
@@ -513,7 +542,9 @@ export default function BookDownloadModal({
               <>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--text-secondary)]">
-                    {(rankedBooks[0]?.score ?? 0) >= 80 ? "其他结果" : "搜索结果"}
+                    {(rankedBooks[0]?.score ?? 0) >= 80
+                      ? "其他结果"
+                      : "搜索结果"}
                   </span>
                   <Tag>{others.length}</Tag>
                 </div>
@@ -525,13 +556,18 @@ export default function BookDownloadModal({
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <BookOpen size={14} className="shrink-0 text-[var(--accent)]" />
+                          <BookOpen
+                            size={14}
+                            className="shrink-0 text-[var(--accent)]"
+                          />
                           <span className="truncate text-sm font-medium text-[var(--text-primary)]">
                             {book.best.title}
                           </span>
                           <Tag className="!text-[10px]">{book.best.site}</Tag>
                           {book.sources.length > 1 && (
-                            <Tag className="!text-[10px]">+{book.sources.length - 1}</Tag>
+                            <Tag className="!text-[10px]">
+                              +{book.sources.length - 1}
+                            </Tag>
                           )}
                         </div>
                         <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-muted)]">
@@ -562,8 +598,7 @@ export default function BookDownloadModal({
                 </div>
               </>
             ) : (
-              !searching &&
-              rankedBooks.length === 0 && (
+              !searching && rankedBooks.length === 0 && (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description="输入关键词搜索小说"

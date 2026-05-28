@@ -4,26 +4,23 @@
  */
 
 import {
+  type QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryClient,
 } from "@tanstack/react-query";
 import type {
   BookContainerOutput,
   BookDetailOutput,
+  BookOutput,
   BookProviderOutput,
   BookSearchResultOutput,
   PagedResult,
-  BookOutput,
 } from "../types";
 
 // ── Fetch helpers ────────────────────────────────────────────────────────────
 
-async function apiFetch<T>(
-  path: string,
-  init?: RequestInit,
-): Promise<T> {
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { credentials: "include", ...init });
   if (!res.ok) {
     let msg = res.statusText;
@@ -35,7 +32,11 @@ async function apiFetch<T>(
     }
     throw new Error(msg);
   }
-  const json = (await res.json()) as { success: boolean; data: T; error?: string };
+  const json = (await res.json()) as {
+    success: boolean;
+    data: T;
+    error?: string;
+  };
   if (!json.success) throw new Error(json.error ?? "API error");
   return json.data;
 }
@@ -52,11 +53,17 @@ async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
 const keys = {
   list: ["book", "list"] as const,
-  listItems: (id: string, page: number, pageSize: number, sortBy: string, sortDir: string) =>
-    ["book", "items", id, page, pageSize, sortBy, sortDir] as const,
+  listItems: (
+    id: string,
+    page: number,
+    pageSize: number,
+    sortBy: string,
+    sortDir: string,
+  ) => ["book", "items", id, page, pageSize, sortBy, sortDir] as const,
   detail: (id: string) => ["book", "detail", id] as const,
   providers: ["book", "providers"] as const,
-  search: (query: string, libraryId: string) => ["book", "search", query, libraryId] as const,
+  search: (query: string, libraryId: string) =>
+    ["book", "search", query, libraryId] as const,
 };
 
 // ── API hooks ────────────────────────────────────────────────────────────────
@@ -68,7 +75,8 @@ export const bookApi = {
         queryKey: keys.list,
         queryFn: () => apiFetch<BookContainerOutput[]>("/api/apps/book"),
       }),
-    invalidate: (qc: QueryClient) => qc.invalidateQueries({ queryKey: keys.list }),
+    invalidate: (qc: QueryClient) =>
+      qc.invalidateQueries({ queryKey: keys.list }),
   },
 
   listItems: {
@@ -133,7 +141,8 @@ export const bookApi = {
     useQuery: (opts?: { staleTime?: number }) =>
       useQuery({
         queryKey: keys.providers,
-        queryFn: () => apiFetch<BookProviderOutput[]>("/api/apps/book/providers"),
+        queryFn: () =>
+          apiFetch<BookProviderOutput[]>("/api/apps/book/providers"),
         staleTime: opts?.staleTime,
       }),
   },
@@ -156,7 +165,10 @@ export const bookApi = {
   },
 
   search: {
-    useQuery: (params: { query: string; libraryId: string }, opts?: { enabled?: boolean }) =>
+    useQuery: (
+      params: { query: string; libraryId: string },
+      opts?: { enabled?: boolean },
+    ) =>
       useQuery({
         queryKey: keys.search(params.query, params.libraryId),
         queryFn: () => {
@@ -164,9 +176,12 @@ export const bookApi = {
             q: params.query,
             libraryId: params.libraryId,
           });
-          return apiFetch<BookSearchResultOutput[]>(`/api/apps/book/search?${sp}`);
+          return apiFetch<BookSearchResultOutput[]>(
+            `/api/apps/book/search?${sp}`,
+          );
         },
-        enabled: opts?.enabled !== false && !!params.query && !!params.libraryId,
+        enabled:
+          opts?.enabled !== false && !!params.query && !!params.libraryId,
         staleTime: 60_000,
       }),
   },

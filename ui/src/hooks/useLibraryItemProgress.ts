@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
+import type { AppEntityEvent, ShellJobEvent } from "@tokimo/sdk";
+import { useAppEntityEvents, useJobEvents } from "@tokimo/sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useJobEvents, useAppEntityEvents } from "@tokimo/sdk";
-import type { ShellJobEvent, AppEntityEvent } from "@tokimo/sdk";
 import { bookApi } from "../api";
 import type { BookContainerOutput } from "../types";
 
@@ -67,7 +67,9 @@ export function useLibraryItemProgress(
 
   const librariesRef = useRef<Set<string>>(new Set());
   const pendingByLibraryRef = useRef(new Map<string, Set<string>>());
-  const entityRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entityRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     librariesRef.current = new Set((libraries ?? []).map((l) => l.id));

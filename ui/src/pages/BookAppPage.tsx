@@ -1,11 +1,10 @@
+import { useInfiniteScroll, useWindowNav } from "@tokimo/sdk";
 import { Empty, PosterCard, Spin, Tag } from "@tokimo/ui";
 import { BookOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { bookApi } from "../api";
 import type { BookOutput } from "../types";
 import { formatWordCount, posterThumbUrl } from "../utils";
-import { useWindowNav } from "@tokimo/sdk";
-import { useInfiniteScroll } from "@tokimo/sdk";
 
 const MIN_CARD_WIDTH = 150;
 const CARD_GAP = 12;
@@ -39,7 +38,13 @@ function parseSortValue(v: SortValue): { sortBy: string; sortDir: string } {
   }
 }
 
-function BookCard({ item, onClick }: { item: BookOutput; onClick: () => void }) {
+function BookCard({
+  item,
+  onClick,
+}: {
+  item: BookOutput;
+  onClick: () => void;
+}) {
   return (
     <PosterCard
       src={posterThumbUrl(item.coverPath, 300)}
@@ -47,7 +52,9 @@ function BookCard({ item, onClick }: { item: BookOutput; onClick: () => void }) 
       fallback={
         <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-muted">
           <BookOpen size={36} strokeWidth={1.5} />
-          <span className="max-w-[80%] truncate px-2 text-center text-xs">{item.title}</span>
+          <span className="max-w-[80%] truncate px-2 text-center text-xs">
+            {item.title}
+          </span>
         </div>
       }
       badges={
@@ -76,7 +83,10 @@ function BookCard({ item, onClick }: { item: BookOutput; onClick: () => void }) 
       }
       onClick={onClick}
     >
-      <p className="truncate text-sm font-medium text-fg-primary" title={item.title}>
+      <p
+        className="truncate text-sm font-medium text-fg-primary"
+        title={item.title}
+      >
         {item.title}
       </p>
       <p className="truncate text-xs text-fg-muted">
@@ -117,7 +127,12 @@ export default function BookAppPage({
   const cols = useMemo(
     () =>
       containerWidth > 0
-        ? Math.max(2, Math.floor((containerWidth + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP)))
+        ? Math.max(
+            2,
+            Math.floor(
+              (containerWidth + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP),
+            ),
+          )
         : 4,
     [containerWidth],
   );
@@ -125,7 +140,9 @@ export default function BookAppPage({
   const pageSize = useMemo(() => {
     const estimatedCols = Math.max(
       2,
-      Math.floor((window.innerWidth * 0.7 + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP)),
+      Math.floor(
+        (window.innerWidth * 0.7 + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP),
+      ),
     );
     const cardWidth = (window.innerWidth * 0.7) / estimatedCols;
     const rowHeight = Math.round(cardWidth * 1.5) + CARD_TITLE_HEIGHT;
@@ -143,12 +160,13 @@ export default function BookAppPage({
     sortDir: sortParams.sortDir,
   });
 
-  const { items, total, hasMore, sentinelRef, reset } = useInfiniteScroll<BookOutput>({
-    queryData: booksQuery.data,
-    isFetching: booksQuery.isFetching,
-    onLoadMore: () => setPage((p) => p + 1),
-    enabled: !syncing,
-  });
+  const { items, total, hasMore, sentinelRef, reset } =
+    useInfiniteScroll<BookOutput>({
+      queryData: booksQuery.data,
+      isFetching: booksQuery.isFetching,
+      onLoadMore: () => setPage((p) => p + 1),
+      enabled: !syncing,
+    });
 
   const resetAll = useCallback(() => {
     reset();
@@ -174,7 +192,9 @@ export default function BookAppPage({
   );
 
   if (
-    (booksQuery.isLoading || syncing || (items.length === 0 && booksQuery.isFetching)) &&
+    (booksQuery.isLoading ||
+      syncing ||
+      (items.length === 0 && booksQuery.isFetching)) &&
     items.length === 0
   )
     return (
@@ -230,7 +250,10 @@ export default function BookAppPage({
               >
                 {items.map((item) => (
                   <div key={item.id}>
-                    <BookCard item={item} onClick={() => handleItemClick(item)} />
+                    <BookCard
+                      item={item}
+                      onClick={() => handleItemClick(item)}
+                    />
                   </div>
                 ))}
               </div>

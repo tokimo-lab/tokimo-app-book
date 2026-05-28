@@ -1,8 +1,8 @@
 import { AppSidebar, CircularProgress, Tooltip } from "@tokimo/ui";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
+import type { BookLibraryProgressState } from "../hooks/useLibraryItemProgress";
 import type { BookContainerOutput } from "../types";
 import { LibraryIcon } from "./AppIcon";
-import type { BookLibraryProgressState } from "../hooks/useLibraryItemProgress";
 
 export default function BookSidebar({
   libraries,
@@ -31,9 +31,7 @@ export default function BookSidebar({
         const sp = syncProgress?.[lib.id];
         return {
           key: lib.id,
-          icon: (
-            <LibraryIcon avatar={lib.avatar} name={lib.name} size={24} />
-          ),
+          icon: <LibraryIcon avatar={lib.avatar} name={lib.name} size={24} />,
           collapsedIcon: sp?.isActive ? (
             <span className="relative flex h-8 w-8 items-center justify-center">
               <LibraryIcon avatar={lib.avatar} name={lib.name} size={24} />

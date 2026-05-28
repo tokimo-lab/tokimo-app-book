@@ -206,7 +206,8 @@ export function BookDownloadProvider({
                     ? {
                         ...t,
                         total,
-                        downloadedBookId: downloadedBookItemId ?? t.downloadedBookId,
+                        downloadedBookId:
+                          downloadedBookItemId ?? t.downloadedBookId,
                       }
                     : t,
                 ),
@@ -221,7 +222,11 @@ export function BookDownloadProvider({
             try {
               const d = JSON.parse(evt.data) as { mappedChapters?: number };
               if (d.mappedChapters && d.mappedChapters > 0) {
-                addLog(taskId, "info", `已找到其他源，可覆盖 ${d.mappedChapters} 个章节`);
+                addLog(
+                  taskId,
+                  "info",
+                  `已找到其他源，可覆盖 ${d.mappedChapters} 个章节`,
+                );
               }
             } catch {
               /* skip */
@@ -238,7 +243,12 @@ export function BookDownloadProvider({
                 setTasks((prev) =>
                   prev.map((t) =>
                     t.id === taskId
-                      ? { ...t, downloaded, rescued, currentChapter: ch.title ?? "" }
+                      ? {
+                          ...t,
+                          downloaded,
+                          rescued,
+                          currentChapter: ch.title ?? "",
+                        }
                       : t,
                   ),
                 );
@@ -253,9 +263,7 @@ export function BookDownloadProvider({
               }
             } catch {
               setTasks((prev) =>
-                prev.map((t) =>
-                  t.id === taskId ? { ...t, downloaded } : t,
-                ),
+                prev.map((t) => (t.id === taskId ? { ...t, downloaded } : t)),
               );
             }
           } else if (evt.event === "chapter_failed") {
@@ -274,7 +282,8 @@ export function BookDownloadProvider({
                 downloadedChapters?: number;
                 failedChapters?: number;
               };
-              if (d.downloadedChapters != null) downloaded = d.downloadedChapters;
+              if (d.downloadedChapters != null)
+                downloaded = d.downloadedChapters;
               if (d.failedChapters != null) failed = d.failedChapters;
             } catch {
               /* skip */
@@ -290,7 +299,14 @@ export function BookDownloadProvider({
             setTasks((prev) =>
               prev.map((t) =>
                 t.id === taskId
-                  ? { ...t, status: "completed", downloaded, failed, vipSkipped, rescued }
+                  ? {
+                      ...t,
+                      status: "completed",
+                      downloaded,
+                      failed,
+                      vipSkipped,
+                      rescued,
+                    }
                   : t,
               ),
             );
@@ -325,9 +341,7 @@ export function BookDownloadProvider({
         } else {
           addLog(taskId, "error", `网络错误: ${(err as Error).message}`);
           setTasks((prev) =>
-            prev.map((t) =>
-              t.id === taskId ? { ...t, status: "failed" } : t,
-            ),
+            prev.map((t) => (t.id === taskId ? { ...t, status: "failed" } : t)),
           );
         }
         abortRefs.current.delete(taskId);
@@ -358,18 +372,21 @@ export function BookDownloadProvider({
   }, []);
 
   const clearCompleted = useCallback(() => {
-    setTasks((prev) =>
-      prev.filter(
-        (t) => t.status === "downloading",
-      ),
-    );
+    setTasks((prev) => prev.filter((t) => t.status === "downloading"));
   }, []);
 
   const activeCount = tasks.filter((t) => t.status === "downloading").length;
 
   return (
     <BookDownloadContext.Provider
-      value={{ tasks, activeCount, startDownload, cancelDownload, removeTask, clearCompleted }}
+      value={{
+        tasks,
+        activeCount,
+        startDownload,
+        cancelDownload,
+        removeTask,
+        clearCompleted,
+      }}
     >
       {children}
     </BookDownloadContext.Provider>

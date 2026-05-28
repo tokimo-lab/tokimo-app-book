@@ -1,3 +1,4 @@
+import { useWindowNav } from "@tokimo/sdk";
 import { Button, Divider, Empty, Spin, Tag } from "@tokimo/ui";
 import {
   ArrowLeft,
@@ -18,7 +19,6 @@ import {
   serialStatusColor,
   serialStatusLabel,
 } from "../utils";
-import { useWindowNav } from "@tokimo/sdk";
 
 // ── Local SectionTitle ────────────────────────────────────────────────────────
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -64,7 +64,11 @@ function VolumeSection({
       {open && (
         <div className="border-t border-border-base">
           {volume.chapters.map((ch) => (
-            <ChapterRow key={ch.id} chapter={ch} onClick={() => onOpenChapter(ch.id)} />
+            <ChapterRow
+              key={ch.id}
+              chapter={ch}
+              onClick={() => onOpenChapter(ch.id)}
+            />
           ))}
         </div>
       )}
@@ -128,7 +132,10 @@ export default function BookDetailPage() {
     return m ? m[1] : null;
   }, [route]);
 
-  const detailQuery = bookApi.getItemDetail.useQuery({ id: bookId! }, { enabled: !!bookId });
+  const detailQuery = bookApi.getItemDetail.useQuery(
+    { id: bookId! },
+    { enabled: !!bookId },
+  );
   const bookDetail = detailQuery.data;
 
   const firstChapterId = useMemo(() => {
@@ -207,13 +214,18 @@ export default function BookDetailPage() {
         {/* Metadata */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold leading-tight md:text-3xl">{bookDetail.title}</h1>
+            <h1 className="text-2xl font-bold leading-tight md:text-3xl">
+              {bookDetail.title}
+            </h1>
             <FavoriteButton isFavorite={bookDetail.isFavorite} />
           </div>
 
-          {bookDetail.originalTitle && bookDetail.originalTitle !== bookDetail.title && (
-            <p className="mt-1 text-sm text-fg-muted">{bookDetail.originalTitle}</p>
-          )}
+          {bookDetail.originalTitle &&
+            bookDetail.originalTitle !== bookDetail.title && (
+              <p className="mt-1 text-sm text-fg-muted">
+                {bookDetail.originalTitle}
+              </p>
+            )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {bookDetail.author && <Tag>{bookDetail.author}</Tag>}
@@ -224,9 +236,13 @@ export default function BookDetailPage() {
               </Tag>
             )}
             {bookDetail.publisher && <Tag>{bookDetail.publisher}</Tag>}
-            {bookDetail.sourceProvider && <Tag>来源: {bookDetail.sourceProvider}</Tag>}
+            {bookDetail.sourceProvider && (
+              <Tag>来源: {bookDetail.sourceProvider}</Tag>
+            )}
             {bookDetail.scrapedAt ? (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-500">✨ 已刮削</span>
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-500">
+                ✨ 已刮削
+              </span>
             ) : (
               <span className="text-xs text-orange-400">未刮削</span>
             )}
@@ -251,12 +267,13 @@ export default function BookDetailPage() {
                 豆瓣 {bookDetail.doubanRating.toFixed(1)}
               </span>
             )}
-            {bookDetail.bangumiRating != null && bookDetail.bangumiRating > 0 && (
-              <span className="flex items-center gap-1">
-                <Star size={14} className="text-blue-500" />
-                BGM {bookDetail.bangumiRating.toFixed(1)}
-              </span>
-            )}
+            {bookDetail.bangumiRating != null &&
+              bookDetail.bangumiRating > 0 && (
+                <span className="flex items-center gap-1">
+                  <Star size={14} className="text-blue-500" />
+                  BGM {bookDetail.bangumiRating.toFixed(1)}
+                </span>
+              )}
           </div>
 
           <div className="mt-5 flex items-center gap-3">
@@ -288,20 +305,31 @@ export default function BookDetailPage() {
           </span>
         </SectionTitle>
 
-        {bookDetail.volumes.length === 0 && bookDetail.orphanChapters.length === 0 ? (
+        {bookDetail.volumes.length === 0 &&
+        bookDetail.orphanChapters.length === 0 ? (
           <Empty description="暂无章节" />
         ) : (
           <div className="space-y-3">
             {bookDetail.volumes.map((vol) => (
-              <VolumeSection key={vol.id} volume={vol} onOpenChapter={handleOpenChapter} />
+              <VolumeSection
+                key={vol.id}
+                volume={vol}
+                onOpenChapter={handleOpenChapter}
+              />
             ))}
             {bookDetail.orphanChapters.length > 0 && (
               <div className="overflow-hidden rounded-lg border border-border-base">
                 {bookDetail.volumes.length > 0 && (
-                  <div className="px-4 py-2.5 text-sm font-semibold text-fg-muted">其他章节</div>
+                  <div className="px-4 py-2.5 text-sm font-semibold text-fg-muted">
+                    其他章节
+                  </div>
                 )}
                 {bookDetail.orphanChapters.map((ch) => (
-                  <ChapterRow key={ch.id} chapter={ch} onClick={() => handleOpenChapter(ch.id)} />
+                  <ChapterRow
+                    key={ch.id}
+                    chapter={ch}
+                    onClick={() => handleOpenChapter(ch.id)}
+                  />
                 ))}
               </div>
             )}
@@ -322,7 +350,9 @@ export default function BookDetailPage() {
                 >
                   <FileText size={20} className="flex-shrink-0 text-fg-muted" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{file.filename}</p>
+                    <p className="truncate text-sm font-medium">
+                      {file.filename}
+                    </p>
                     <p className="text-xs text-fg-muted">
                       {file.mimeType ?? ""}
                       {file.size != null && <> · {formatFileSize(file.size)}</>}

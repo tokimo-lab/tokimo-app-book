@@ -1,10 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
+import type { MenuBarConfig } from "@tokimo/sdk";
+import { useMenuBar, useToast, useWindowNav } from "@tokimo/sdk";
 import { Checkbox, Modal } from "@tokimo/ui";
 import { Download, FolderSync, RefreshCw } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
-import { useMenuBar, useToast, useWindowNav } from "@tokimo/sdk";
 import { bookApi } from "../api";
-import type { MenuBarConfig } from "@tokimo/sdk";
 import BookDownloadModal from "./BookDownloadModal";
 
 export default function BookMenuBar({ children }: { children: ReactNode }) {

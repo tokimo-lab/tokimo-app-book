@@ -4,7 +4,7 @@
  */
 
 // Re-export SDK utilities that the ported components rely on
-export { posterThumbUrl, getAvatarIcon, getAvatarColor } from "@tokimo/sdk";
+export { getAvatarColor, getAvatarIcon, posterThumbUrl } from "@tokimo/sdk";
 
 // ── Format helpers ───────────────────────────────────────────────────────────
 

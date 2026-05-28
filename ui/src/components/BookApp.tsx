@@ -1,13 +1,17 @@
+import { useToast, useWindowNav } from "@tokimo/sdk";
 import { AppSetupGuide, Spin } from "@tokimo/ui";
 import { FileText, Import, Library, Plus } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { bookApi } from "../api";
 import { useLibraryItemProgress } from "../hooks/useLibraryItemProgress";
-import BookDetailPage from "../pages/BookDetailPage";
 import BookAppPage from "../pages/BookAppPage";
+import BookDetailPage from "../pages/BookDetailPage";
+import {
+  parseBookRoute,
+  useContainerWidth,
+  useSidebarCollapsed,
+} from "../utils";
 import BookSidebar from "./BookSidebar";
-import { useContainerWidth, useSidebarCollapsed, parseBookRoute } from "../utils";
-import { useWindowNav, useToast } from "@tokimo/sdk";
 
 export default function BookApp() {
   const { route, replace } = useWindowNav();

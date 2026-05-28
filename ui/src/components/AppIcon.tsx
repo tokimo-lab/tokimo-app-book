@@ -1,5 +1,5 @@
-import { cn } from "@tokimo/ui";
 import { getAvatarColor, getAvatarIcon } from "@tokimo/sdk";
+import { cn } from "@tokimo/ui";
 
 const HASH_PALETTE = [
   "#ef4444",
