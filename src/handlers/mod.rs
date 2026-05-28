@@ -1,12 +1,35 @@
-//! Stub handlers — all return 501 Not Implemented.
-//!
-//! TODO: migrate full implementation from packages/rust-server/src/apps/book/
-//! once book DB entities and repos are ported to the sidecar schema.
+//! Book sidecar handlers.
 
 #![allow(clippy::unused_async)]
 
-use axum::Json;
-use axum::http::StatusCode;
+use std::sync::Arc;
+
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
+};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::{
+    ctx::AppCtx,
+    db::{
+        entities::items,
+        repos::{containers_repo::ContainersRepo, items_repo::ItemsRepo},
+    },
+    error::AppError,
+};
+
+#[derive(Serialize)]
+pub struct ApiResponse<T> {
+    success: bool,
+    data: T,
+}
+
+fn ok<T>(data: T) -> Json<ApiResponse<T>> {
+    Json(ApiResponse { success: true, data })
+}
 
 type StubResult = (StatusCode, Json<serde_json::Value>);
 
@@ -20,11 +43,41 @@ fn not_implemented(name: &str) -> StubResult {
     )
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ListBooksQuery {
+    user_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListItemsQuery {
+    page: Option<u64>,
+    page_size: Option<u64>,
+    #[serde(rename = "pageSize")]
+    page_size_camel: Option<u64>,
+}
+
+impl ListItemsQuery {
+    fn page(&self) -> u64 {
+        self.page.unwrap_or(1).max(1)
+    }
+
+    fn page_size(&self) -> u64 {
+        self.page_size.or(self.page_size_camel).unwrap_or(20).clamp(1, 200)
+    }
+}
+
 // ── Container CRUD ────────────────────────────────────────────────────────────
 
 /// GET /
-pub async fn list_books() -> StubResult {
-    not_implemented("list_books")
+pub async fn list_books(
+    State(ctx): State<Arc<AppCtx>>,
+    Query(q): Query<ListBooksQuery>,
+) -> Result<Json<ApiResponse<Vec<crate::db::entities::containers::Model>>>, AppError> {
+    let user_id = q
+        .user_id
+        .ok_or_else(|| AppError::BadRequest("user_id is required".to_string()))?;
+    let rows = ContainersRepo::list_by_user(&ctx.db, user_id).await?;
+    Ok(ok(rows))
 }
 
 /// GET /{id}
@@ -55,13 +108,31 @@ pub async fn reorder_books() -> StubResult {
 // ── Book items ────────────────────────────────────────────────────────────────
 
 /// GET /{id}/items
-pub async fn list_book_items() -> StubResult {
-    not_implemented("list_book_items")
+pub async fn list_book_items(
+    State(ctx): State<Arc<AppCtx>>,
+    Path(id): Path<Uuid>,
+    Query(q): Query<ListItemsQuery>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let page = q.page();
+    let page_size = q.page_size();
+    let (rows, total) = ItemsRepo::list_by_container(&ctx.db, id, page, page_size).await?;
+    Ok(ok(serde_json::json!({
+        "items": rows,
+        "total": total,
+        "page": page,
+        "pageSize": page_size,
+    })))
 }
 
 /// GET /item/{id}
-pub async fn get_book_detail() -> StubResult {
-    not_implemented("get_book_detail")
+pub async fn get_book_detail(
+    State(ctx): State<Arc<AppCtx>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<items::Model>>, AppError> {
+    let item = ItemsRepo::get_by_id(&ctx.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("book item {id} not found")))?;
+    Ok(ok(item))
 }
 
 /// GET /item/{book_id}/chapters/{chapter_id}/content
