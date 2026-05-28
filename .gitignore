@@ -1,0 +1,6 @@
+target/
+ui/node_modules/
+ui/.vite/
+ui/dist/
+**/.DS_Store
+*.log
