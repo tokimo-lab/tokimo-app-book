@@ -14,9 +14,9 @@ import {
   parseAvatar,
   ScrollArea,
   Select,
-  type StorageBinding,
   StorageBindingsField,
   useToast,
+  type VideoBinding,
 } from "@tokimo/ui";
 import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -51,7 +51,6 @@ export default function BookLibraryEditor({
   const book = bookId ? libraries.find((c) => c.id === bookId) : undefined;
 
   const [avatar, setAvatar] = useState<AvatarData | null>(null);
-  const [bindings, setBindings] = useState<StorageBinding[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
 
@@ -72,32 +71,10 @@ export default function BookLibraryEditor({
         description: book.description ?? "",
       });
       setAvatar(parseAvatar(book.avatar));
-
-      // Initialize bindings from book.sources or fallback to rootPath/sourceId
-      if (book.sources && book.sources.length > 0) {
-        setBindings(
-          book.sources.map((s) => ({
-            sourceId: s.sourceId,
-            rootPath: s.rootPath,
-            isDefaultDownload: s.isDefaultDownload ?? false,
-          })),
-        );
-      } else if (book.sourceId && book.rootPath) {
-        setBindings([
-          {
-            sourceId: book.sourceId,
-            rootPath: book.rootPath,
-            isDefaultDownload: true,
-          },
-        ]);
-      } else {
-        setBindings([]);
-      }
     } else {
       form.resetFields();
       form.setFieldsValue({ type: "book" });
       setAvatar({ type: "icon", icon: "lucide:book-open", color: "#8b5cf6" });
-      setBindings([]);
     }
   }, [book, form]);
 
@@ -129,7 +106,9 @@ export default function BookLibraryEditor({
 
   const handleSave = useCallback(async () => {
     const values = await form.validateFields();
-    const sources = bindings
+    const rawBindings =
+      (form.getFieldValue("bindings") as VideoBinding[] | undefined) ?? [];
+    const sources = rawBindings
       .filter((b) => b.sourceId && b.rootPath)
       .map((b, i) => ({
         sourceId: b.sourceId,
@@ -159,7 +138,7 @@ export default function BookLibraryEditor({
       savedId = created.id;
     }
     onSaved?.(savedId);
-  }, [form, book, avatar, bindings, createMutation, updateMutation, onSaved]);
+  }, [form, book, avatar, createMutation, updateMutation, onSaved]);
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
@@ -219,8 +198,8 @@ export default function BookLibraryEditor({
             </h4>
             <StorageBindingsField
               sources={vfsSources}
-              value={bindings}
-              onChange={setBindings}
+              form={form}
+              initialSources={book?.sources}
             />
           </div>
         </ScrollArea>
