@@ -653,6 +653,40 @@ async fn do_download_book(
         Some(serde_json::json!({"downloaded": 0, "failed": 0, "total": total_chapters})),
     )
     .await?;
+
+    // Download cover image to the container VFS and persist its path on item metadata.
+    if !info.cover_url.is_empty()
+        && let Some(vfs) = &chapter_vfs
+    {
+        match download_and_upload_cover(vfs, &book_dir, &info.cover_url).await {
+            Ok(cover_path) => {
+                let mut new_meta = item.metadata.clone();
+                if let Some(obj) = new_meta.as_object_mut() {
+                    obj.insert("coverPath".to_string(), serde_json::Value::String(cover_path.clone()));
+                }
+                match ItemsRepo::update(
+                    &ctx.db,
+                    item.id,
+                    UpdateItemParams {
+                        title: None,
+                        author: None,
+                        file_path: None,
+                        format: None,
+                        size_bytes: None,
+                        content: None,
+                        metadata: Some(new_meta),
+                    },
+                )
+                .await
+                {
+                    Ok(_) => info!(%cover_path, book = %title, "downloaded book cover"),
+                    Err(error) => warn!(%error, "failed to persist cover path"),
+                }
+            }
+            Err(error) => warn!(%error, "failed to download book cover"),
+        }
+    }
+
     let _ = events.send(
         Event::default().event("book_info").data(
             serde_json::json!({
@@ -1348,4 +1382,38 @@ async fn try_alt_chapter(alts: &[(String, String, String)]) -> Option<(String, S
         }
     }
     None
+}
+
+/// Download a book cover from `cover_url` and store it inside the container VFS
+/// at `{book_dir}/cover.{ext}`. Returns the VFS path of the saved cover.
+async fn download_and_upload_cover(vfs: &Arc<Vfs>, book_dir: &str, cover_url: &str) -> Result<String, AppError> {
+    let resp = reqwest::Client::new()
+        .get(cover_url)
+        .send()
+        .await
+        .map_err(|error| AppError::BadRequest(format!("failed to fetch cover: {error}")))?;
+    if !resp.status().is_success() {
+        return Err(AppError::BadRequest(format!("cover HTTP {}", resp.status())));
+    }
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|error| AppError::BadRequest(format!("failed to read cover bytes: {error}")))?;
+    let ext = cover_url
+        .rsplit('.')
+        .next()
+        .and_then(|raw| {
+            let lower = raw.split('?').next().unwrap_or(raw).to_ascii_lowercase();
+            if matches!(lower.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif") {
+                Some(lower)
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "jpg".to_string());
+    let cover_path = join_vfs_path(book_dir, &format!("cover.{ext}"));
+    vfs.put(StdPath::new(&cover_path), bytes.to_vec())
+        .await
+        .map_err(|error| AppError::Internal(format!("failed to write cover to VFS: {error}")))?;
+    Ok(cover_path)
 }
