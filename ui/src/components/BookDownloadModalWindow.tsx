@@ -1,4 +1,6 @@
-import { Button, Empty, Modal, Spin, Tag } from "@tokimo/ui";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RuntimeProvider, type ShellWindowHandle } from "@tokimo/sdk";
+import { Button, Empty, Spin, Tag, ConfigProvider, ToastProvider } from "@tokimo/ui";
 import {
   BookOpen,
   ChevronRight,
@@ -10,9 +12,16 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { bookApi } from "../api";
-import { useBookDownload } from "../hooks/BookDownloadContext";
-import { useBookI18n } from "../i18n";
+import { AppCtxProvider } from "../AppContext";
+import { getBookI18n, useBookI18n } from "../i18n";
+import { getBridge, type ModalBridge } from "../modal-bridge";
 import type { BookSearchResultOutput } from "../types";
+
+type BookDownloadBridge = Extract<ModalBridge, { kind: "book-download" }>;
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+});
 
 // ── SSE helpers ───────────────────────────────────────────────────────────────
 
@@ -27,6 +36,7 @@ async function fetchSseEvents(
   onEvent: (evt: SseEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
+  // Direct fetch is required here because typed clients do not expose the SSE ReadableStream.
   const res = await fetch(url, {
     method: "POST",
     credentials: "include",
@@ -71,13 +81,6 @@ interface BookInfo {
   wordCount: string;
   serialStatus: string;
   totalChapters: number;
-}
-
-interface BookDownloadModalProps {
-  open: boolean;
-  onClose: () => void;
-  bookId: string;
-  appName: string;
 }
 
 // ── Ranking helpers ───────────────────────────────────────────────────────────
@@ -138,14 +141,15 @@ function rankAndDedup(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function BookDownloadModal({
-  open,
-  onClose,
-  bookId,
-  appName,
-}: BookDownloadModalProps) {
-  const { startDownload } = useBookDownload();
+function BookDownloadModalContent({
+  win,
+  bridge,
+}: {
+  win: ShellWindowHandle;
+  bridge: BookDownloadBridge;
+}) {
   const { t } = useBookI18n();
+  const { bookId, appName, startDownload } = bridge;
 
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<BookSearchResultOutput[]>([]);
@@ -184,8 +188,8 @@ export default function BookDownloadModal({
 
   const handleClose = useCallback(() => {
     resetAll();
-    onClose();
-  }, [resetAll, onClose]);
+    win.close();
+  }, [resetAll, win]);
 
   const handleSearch = useCallback(() => {
     const trimmed = keyword.trim();
@@ -285,18 +289,11 @@ export default function BookDownloadModal({
   }, [selectedSource, bookId, bookInfo, yearInput, startDownload, handleClose]);
 
   return (
-    <Modal
-      open={open}
-      onCancel={handleClose}
-      title={
-        <span className="flex items-center gap-2">
-          <Download size={16} />
-          {t("downloadTitle")}
-        </span>
-      }
-      footer={null}
-      width={640}
-    >
+    <div className="h-full overflow-auto p-4">
+      <div className="mb-4 flex items-center gap-2 text-base font-semibold text-fg-primary">
+        <Download size={16} />
+        {t("downloadTitle")}
+      </div>
       {selectedBook && selectedSource ? (
         <div className="space-y-4">
           <button
@@ -419,7 +416,7 @@ export default function BookDownloadModal({
                     {t("commonYearOptional")}
                   </span>
                   <input
-                    className="h-9 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
+                    className="h-10 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
                     placeholder="2005"
                     value={yearInput}
                     onChange={(e) => setYearInput(e.target.value)}
@@ -428,6 +425,7 @@ export default function BookDownloadModal({
                 </div>
                 <Button
                   variant="primary"
+                  size="large"
                   className="w-full"
                   icon={<Download size={16} />}
                   onClick={handleDownload}
@@ -472,6 +470,7 @@ export default function BookDownloadModal({
             </div>
             <Button
               variant="primary"
+              size="large"
               icon={<Search size={16} />}
               loading={searching}
               onClick={handleSearch}
@@ -611,6 +610,32 @@ export default function BookDownloadModal({
           })()}
         </div>
       )}
-    </Modal>
+    </div>
+  );
+}
+
+export default function BookDownloadModalWindow({ win }: { win: ShellWindowHandle }) {
+  const bridgeId =
+    typeof win.metadata?.bridgeId === "string"
+      ? win.metadata.bridgeId
+      : undefined;
+  const [bridge] = useState(() => (bridgeId ? getBridge(bridgeId) : undefined));
+
+  if (bridge?.kind !== "book-download") return null;
+
+  const locale = getBookI18n(bridge.ctx.locale).uiLocale;
+
+  return (
+    <RuntimeProvider value={bridge.ctx}>
+      <AppCtxProvider value={bridge.ctx}>
+        <ConfigProvider locale={locale}>
+          <ToastProvider>
+            <QueryClientProvider client={queryClient}>
+              <BookDownloadModalContent win={win} bridge={bridge} />
+            </QueryClientProvider>
+          </ToastProvider>
+        </ConfigProvider>
+      </AppCtxProvider>
+    </RuntimeProvider>
   );
 }

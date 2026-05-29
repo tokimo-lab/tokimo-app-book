@@ -1,25 +1,34 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { MenuBarConfig } from "@tokimo/sdk";
-import { useMenuBar, useToast, useWindowNav } from "@tokimo/sdk";
+import {
+  useMenuBar,
+  useRuntimeCtx,
+  useToast,
+  useWindowActions,
+  useWindowNav,
+} from "@tokimo/sdk";
 import { Checkbox, Modal } from "@tokimo/ui";
 import { Download, FolderSync, RefreshCw } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { bookApi } from "../api";
 import { useBookI18n } from "../i18n";
-import BookDownloadModal from "./BookDownloadModal";
+import { useBookDownload } from "../hooks/BookDownloadContext";
+import { registerBridge } from "../modal-bridge";
 
 export default function BookMenuBar({ children }: { children: ReactNode }) {
   const { route, navigate } = useWindowNav();
+  const { openModalWindow } = useWindowActions();
+  const ctx = useRuntimeCtx();
   const toast = useToast();
   const { t } = useBookI18n();
   const qc = useQueryClient();
+  const { startDownload } = useBookDownload();
 
   const bookIdMatch = /^\/library\/([^/]+)/.exec(route);
   const bookId = bookIdMatch ? bookIdMatch[1] : undefined;
 
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [syncClearData, setSyncClearData] = useState(false);
-  const [downloadOpen, setDownloadOpen] = useState(false);
 
   const syncMut = bookApi.sync.useMutation({
     onSuccess: () => {
@@ -32,6 +41,26 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
       toast.error((error as Error).message || t("syncFailed"));
     },
   });
+
+
+  const openDownloadWindow = useCallback(() => {
+    if (!bookId) return;
+    const bridgeId = registerBridge({
+      kind: "book-download",
+      ctx,
+      bookId,
+      appName: t("libraryAppName"),
+      startDownload,
+    });
+
+    openModalWindow({
+      component: () => import("./BookDownloadModalWindow"),
+      title: t("downloadTitle"),
+      width: 680,
+      height: 640,
+      metadata: { bridgeId, bookId },
+    });
+  }, [bookId, ctx, openModalWindow, startDownload, t]);
 
   const menuBarConfig: MenuBarConfig | null = useMemo(() => {
     if (!bookId) return null;
@@ -55,7 +84,7 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
               key: "download-book",
               label: t("menuDownloadBook"),
               icon: <Download size={14} />,
-              onClick: () => setDownloadOpen(true),
+              onClick: openDownloadWindow,
             },
             { type: "divider" as const },
             {
@@ -78,7 +107,7 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
           navigate(`/books/${item.id}`, `${t("appName")} · ${item.title ?? t("appFallbackBook")}`),
       },
     };
-  }, [bookId, qc, syncMut.isPending, navigate, t]);
+  }, [bookId, qc, syncMut.isPending, navigate, openDownloadWindow, t]);
 
   useMenuBar(menuBarConfig);
 
@@ -114,15 +143,6 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
           {t("syncClearDataHint")}
         </p>
       </Modal>
-
-      {bookId && (
-        <BookDownloadModal
-          open={downloadOpen}
-          onClose={() => setDownloadOpen(false)}
-          bookId={bookId}
-          appName={t("libraryAppName")}
-        />
-      )}
     </>
   );
 }

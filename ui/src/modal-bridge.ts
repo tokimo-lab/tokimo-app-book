@@ -1,4 +1,5 @@
 import type { AppRuntimeCtx } from "@tokimo/sdk";
+import type { StartDownloadParams } from "./hooks/BookDownloadContext";
 
 export interface LibraryEditorBridge {
   kind: "library-editor";
@@ -8,7 +9,15 @@ export interface LibraryEditorBridge {
   onDeleted?: () => void;
 }
 
-export type ModalBridge = LibraryEditorBridge;
+export interface BookDownloadBridge {
+  kind: "book-download";
+  ctx: AppRuntimeCtx;
+  bookId: string;
+  appName: string;
+  startDownload: (params: StartDownloadParams) => string;
+}
+
+export type ModalBridge = LibraryEditorBridge | BookDownloadBridge;
 
 const registry = new Map<string, ModalBridge>();
 let counter = 0;

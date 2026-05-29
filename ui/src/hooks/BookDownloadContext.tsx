@@ -87,6 +87,7 @@ async function fetchSseEvents(
   onEvent: (evt: SseEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
+  // Direct fetch is required here because typed clients do not expose the SSE ReadableStream.
   const res = await fetch(url, {
     method: "POST",
     credentials: "include",
