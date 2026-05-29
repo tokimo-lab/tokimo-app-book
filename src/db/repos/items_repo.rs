@@ -151,6 +151,13 @@ impl ItemsRepo {
         Self::create(db, params).await
     }
 
+    pub async fn count_by_container<C: ConnectionTrait>(db: &C, container_id: Uuid) -> Result<i64, AppError> {
+        Ok(Items::find()
+            .filter(items::Column::ContainerId.eq(container_id))
+            .count(db)
+            .await? as i64)
+    }
+
     pub async fn delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<(), AppError> {
         Items::delete_by_id(id).exec(db).await?;
         Ok(())

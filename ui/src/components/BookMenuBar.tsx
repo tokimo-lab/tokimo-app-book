@@ -34,8 +34,7 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
     onSuccess: () => {
       toast.success(t("syncStarted"));
       setSyncModalOpen(false);
-      bookApi.list.invalidate(qc);
-      bookApi.listItems.invalidate(qc);
+      qc.refetchQueries({ queryKey: ["book"], type: "all" });
     },
     onError: (error) => {
       toast.error((error as Error).message || t("syncFailed"));

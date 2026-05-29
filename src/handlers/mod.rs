@@ -56,6 +56,10 @@ pub struct ListItemsQuery {
     #[serde(rename = "pageSize")]
     page_size_camel: Option<u64>,
     search: Option<String>,
+    #[serde(rename = "sortBy")]
+    sort_by: Option<String>,
+    #[serde(rename = "sortDir")]
+    sort_dir: Option<String>,
 }
 
 impl ListItemsQuery {
@@ -94,7 +98,7 @@ pub struct ContainerOutput {
     sources: Vec<ContainerSource>,
 }
 
-fn container_to_output(c: containers::Model) -> ContainerOutput {
+fn container_to_output(c: containers::Model, item_count: i64, sync_status: Option<String>) -> ContainerOutput {
     let sources = if let Some(sid) = c.source_id {
         vec![ContainerSource { source_id: sid, root_path: c.root_path.clone() }]
     } else {
@@ -106,12 +110,51 @@ fn container_to_output(c: containers::Model) -> ContainerOutput {
         kind: c.kind,
         avatar: None,
         description: None,
-        item_count: 0,
-        sync_status: None,
+        item_count,
+        sync_status,
         root_path: c.root_path,
         source_id: c.source_id,
         source_type: c.source_type,
         sources,
+    }
+}
+
+// ── Book item output (camelCase, UI-compatible) ───────────────────────────────
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookItemOutput {
+    id: Uuid,
+    title: String,
+    author: Option<String>,
+    cover_path: Option<String>,
+    serial_status: Option<String>,
+    chapter_count: Option<i64>,
+    word_count: Option<i64>,
+    scraped_at: Option<String>,
+    format: String,
+    file_path: String,
+    size_bytes: Option<i64>,
+    created_at: String,
+    updated_at: String,
+}
+
+fn item_to_output(item: &items::Model) -> BookItemOutput {
+    let meta = &item.metadata;
+    BookItemOutput {
+        id: item.id,
+        title: item.title.clone(),
+        author: item.author.clone(),
+        cover_path: meta.get("coverPath").and_then(|v| v.as_str()).map(String::from),
+        serial_status: meta.get("serialStatus").and_then(|v| v.as_str()).map(String::from),
+        chapter_count: meta.get("chapterCount").and_then(|v| v.as_i64()),
+        word_count: meta.get("wordCount").and_then(|v| v.as_i64()).or(item.size_bytes),
+        scraped_at: meta.get("scrapedAt").and_then(|v| v.as_str()).map(String::from),
+        format: item.format.clone(),
+        file_path: item.file_path.clone(),
+        size_bytes: item.size_bytes,
+        created_at: item.created_at.to_string(),
+        updated_at: item.updated_at.to_string(),
     }
 }
 
@@ -122,7 +165,20 @@ pub async fn list_books(
     Query(_q): Query<ListBooksQuery>,
 ) -> Result<Json<ApiResponse<Vec<ContainerOutput>>>, AppError> {
     let rows = ContainersRepo::list_all(&ctx.db).await?;
-    Ok(ok(rows.into_iter().map(container_to_output).collect()))
+    let sync_statuses = BookSyncStatusRepo::list_all(&ctx.db).await?;
+    let sync_map: std::collections::HashMap<Uuid, String> = sync_statuses
+        .into_iter()
+        .map(|s| (s.container_id, s.status))
+        .collect();
+
+    let mut result = Vec::with_capacity(rows.len());
+    for c in rows {
+        let cid = c.id;
+        let item_count = ItemsRepo::count_by_container(&ctx.db, cid).await.unwrap_or(0);
+        let sync_status = sync_map.get(&cid).cloned();
+        result.push(container_to_output(c, item_count, sync_status));
+    }
+    Ok(ok(result))
 }
 
 pub async fn get_book(
@@ -132,7 +188,11 @@ pub async fn get_book(
     let container = ContainersRepo::get_by_id(&ctx.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;
-    Ok(ok(container_to_output(container)))
+    let item_count = ItemsRepo::count_by_container(&ctx.db, id).await.unwrap_or(0);
+    let sync_status = BookSyncStatusRepo::get_by_container(&ctx.db, id)
+        .await?
+        .map(|s| s.status);
+    Ok(ok(container_to_output(container, item_count, sync_status)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -158,7 +218,7 @@ pub async fn create_container(
         req.root_path,
     )
     .await?;
-    Ok(ok(container_to_output(container)))
+    Ok(ok(container_to_output(container, 0, None)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -179,7 +239,11 @@ pub async fn update_container(
     let container = ContainersRepo::update(&ctx.db, id, req.name, req.kind, req.source_id, req.root_path)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;
-    Ok(ok(container_to_output(container)))
+    let item_count = ItemsRepo::count_by_container(&ctx.db, id).await.unwrap_or(0);
+    let sync_status = BookSyncStatusRepo::get_by_container(&ctx.db, id)
+        .await?
+        .map(|s| s.status);
+    Ok(ok(container_to_output(container, item_count, sync_status)))
 }
 
 pub async fn delete_container(
@@ -302,9 +366,30 @@ pub async fn list_book_items(
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     let page = q.page();
     let page_size = q.page_size();
+    let sort_by = q.sort_by.as_deref();
+    let sort_dir = q.sort_dir.as_deref();
     let (rows, total) = ItemsRepo::list_by_container(&ctx.db, id, page, page_size, q.search.as_deref()).await?;
+    let items: Vec<BookItemOutput> = rows.iter().map(item_to_output).collect();
+
+    // Apply in-memory sort if requested (metadata-based fields need post-fetch sorting)
+    let mut sorted = items;
+    if let Some(sort_field) = sort_by {
+        let asc = sort_dir != Some("desc");
+        sorted.sort_by(|a, b| {
+            let cmp = match sort_field {
+                "title" => a.title.cmp(&b.title),
+                "author" => a.author.cmp(&b.author),
+                "addedAt" | "created_at" => a.created_at.cmp(&b.created_at),
+                "wordCount" => a.word_count.cmp(&b.word_count),
+                "year" | "scrapedAt" => a.scraped_at.cmp(&b.scraped_at),
+                _ => a.created_at.cmp(&b.created_at),
+            };
+            if asc { cmp } else { cmp.reverse() }
+        });
+    }
+
     Ok(ok(serde_json::json!({
-        "items": rows,
+        "items": sorted,
         "total": total,
         "page": page,
         "pageSize": page_size,
@@ -313,10 +398,29 @@ pub async fn list_book_items(
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BookChapterInfo {
+    id: Uuid,
+    idx: i32,
+    title: String,
+    word_count: Option<i64>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BookDetailResponse {
     #[serde(flatten)]
-    item: items::Model,
-    chapters: Vec<crate::db::entities::chapters::Model>,
+    item: BookItemOutput,
+    is_favorite: bool,
+    original_title: Option<String>,
+    overview: Option<String>,
+    year: Option<i32>,
+    publisher: Option<String>,
+    source_provider: Option<String>,
+    douban_rating: Option<f64>,
+    bangumi_rating: Option<f64>,
+    volumes: Vec<serde_json::Value>,
+    orphan_chapters: Vec<BookChapterInfo>,
+    files: Vec<serde_json::Value>,
     total_chapters: usize,
 }
 
@@ -328,10 +432,32 @@ pub async fn get_book_detail(
         .await?
         .ok_or_else(|| AppError::NotFound(format!("book item {id} not found")))?;
     let chapters = ChaptersRepo::list_by_item(&ctx.db, id).await?;
+    let meta = &item.metadata;
+
+    let chapter_infos: Vec<BookChapterInfo> = chapters
+        .iter()
+        .map(|ch| BookChapterInfo {
+            id: ch.id,
+            idx: ch.idx,
+            title: ch.title.clone(),
+            word_count: None,
+        })
+        .collect();
+
     Ok(ok(BookDetailResponse {
-        item,
+        item: item_to_output(&item),
+        is_favorite: meta.get("isFavorite").and_then(|v| v.as_bool()).unwrap_or(false),
+        original_title: meta.get("originalTitle").and_then(|v| v.as_str()).map(String::from),
+        overview: meta.get("overview").and_then(|v| v.as_str()).map(String::from),
+        year: meta.get("year").and_then(|v| v.as_i64()).map(|v| v as i32),
+        publisher: meta.get("publisher").and_then(|v| v.as_str()).map(String::from),
+        source_provider: meta.get("sourceProvider").and_then(|v| v.as_str()).map(String::from),
+        douban_rating: meta.get("doubanRating").and_then(|v| v.as_f64()),
+        bangumi_rating: meta.get("bangumiRating").and_then(|v| v.as_f64()),
+        volumes: meta.get("volumes").cloned().map(|v| v.as_array().cloned().unwrap_or_default()).unwrap_or_default(),
+        orphan_chapters: chapter_infos,
+        files: meta.get("files").cloned().map(|v| v.as_array().cloned().unwrap_or_default()).unwrap_or_default(),
         total_chapters: chapters.len(),
-        chapters,
     }))
 }
 
@@ -361,13 +487,41 @@ pub async fn get_chapter_content(
     }))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SyncBookRequest {
+    #[serde(default)]
+    clear_data: bool,
+}
+
 pub async fn sync_book(
     State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<Uuid>,
+    body: Option<Json<SyncBookRequest>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let clear_data = body.map(|b| b.clear_data).unwrap_or(false);
     let container = ContainersRepo::get_by_id(&ctx.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;
+
+    // Clear data if requested
+    if clear_data {
+        let items = ItemsRepo::list_by_container(&ctx.db, id, 1, 10000, None).await?;
+        for item in &items.0 {
+            ItemsRepo::delete(&ctx.db, item.id).await?;
+        }
+        // Notify frontend
+        if let Some(client) = ctx.client.get() {
+            let _ = bus_clients::app_events::emit_entity(
+                client,
+                Uuid::nil(),
+                "book_item",
+                Some(format!("library:{id}")),
+                serde_json::json!({ "id": id.to_string(), "operation": "deleted", "libraryId": id.to_string() }),
+            )
+            .await;
+        }
+    }
+
     BookSyncStatusRepo::upsert(
         &ctx.db,
         id,
