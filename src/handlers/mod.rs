@@ -616,7 +616,7 @@ pub async fn search_books(Json(req): Json<SearchBooksRequest>) -> Sse<impl Strea
 #[derive(Debug, Deserialize)]
 pub struct GetBookInfoRequest {
     provider: String,
-    #[serde(alias = "book_id", alias = "external_id", alias = "externalId")]
+    #[serde(alias = "book_id", alias = "bookId", alias = "external_id", alias = "externalId")]
     book_id: String,
 }
 
@@ -641,7 +641,7 @@ pub async fn get_book_info(
 #[derive(Debug, Deserialize)]
 pub struct DownloadBookRequest {
     provider: String,
-    #[serde(alias = "book_id", alias = "external_id", alias = "externalId")]
+    #[serde(alias = "book_id", alias = "bookId", alias = "external_id", alias = "externalId")]
     book_id: String,
     #[serde(alias = "container_id", alias = "libraryId", alias = "library_id")]
     container_id: Uuid,
