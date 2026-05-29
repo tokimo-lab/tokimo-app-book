@@ -107,7 +107,7 @@ export default function BookApp() {
   if (!libraries?.length) {
     return (
       <AppSetupGuide
-        imageSrc="/icon.png"
+        imageSrc="/api/apps/book/assets/icon.png"
         accentColor="amber"
         title="开始使用 TokimoBook"
         description="管理你的数字书库，下载小说，追踪阅读进度"
