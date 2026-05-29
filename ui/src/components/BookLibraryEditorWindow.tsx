@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useWindowActions, type WindowState } from "@tokimo/sdk";
+import type { ShellWindowHandle } from "@tokimo/sdk";
 import { ConfigProvider, ToastProvider } from "@tokimo/ui";
 import { useState } from "react";
 import { getBridge, type ModalBridge } from "../modal-bridge";
@@ -15,10 +15,9 @@ function BookLibraryEditorContent({
   win,
   bridge,
 }: {
-  win: WindowState;
+  win: ShellWindowHandle;
   bridge: LibraryEditorBridge;
 }) {
-  const { closeWindow } = useWindowActions();
   const bookId =
     typeof win.metadata?.bookId === "string"
       ? win.metadata.bookId
@@ -29,18 +28,22 @@ function BookLibraryEditorContent({
       bookId={bookId}
       onSaved={(savedId) => {
         bridge.onSaved?.(savedId);
-        closeWindow(win.id);
+        win.close();
       }}
       onDeleted={() => {
         bridge.onDeleted?.();
-        closeWindow(win.id);
+        win.close();
       }}
-      onCancel={() => closeWindow(win.id)}
+      onCancel={() => win.close()}
     />
   );
 }
 
-export default function BookLibraryEditorWindow({ win }: { win: WindowState }) {
+export default function BookLibraryEditorWindow({
+  win,
+}: {
+  win: ShellWindowHandle;
+}) {
   const bridgeId =
     typeof win.metadata?.bridgeId === "string"
       ? win.metadata.bridgeId
