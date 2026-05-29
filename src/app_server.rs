@@ -31,7 +31,7 @@ pub fn spawn(service: &str, ctx: Arc<AppCtx>) -> anyhow::Result<DataPlaneSocket>
 fn build_router(ctx: Arc<AppCtx>) -> Router {
     Router::new()
         // ── Container CRUD ──
-        .route("/", get(handlers::list_books).post(handlers::create_book))
+        .route("/", get(handlers::list_books).post(handlers::create_container))
         .route("/reorder", post(handlers::reorder_books))
         // ── Sync ──
         .route("/sync-statuses", get(handlers::get_all_book_sync_statuses))
@@ -41,7 +41,13 @@ fn build_router(ctx: Arc<AppCtx>) -> Router {
         .route("/book-info", post(handlers::get_book_info))
         .route("/download", post(handlers::download_book))
         // ── Item-level routes ──
-        .route("/item/{id}", get(handlers::get_book_detail))
+        .route("/item", post(handlers::create_item))
+        .route(
+            "/item/{id}",
+            get(handlers::get_book_detail)
+                .patch(handlers::update_item)
+                .delete(handlers::delete_item),
+        )
         .route(
             "/item/{book_id}/chapters/{chapter_id}/content",
             get(handlers::get_chapter_content),
@@ -50,8 +56,8 @@ fn build_router(ctx: Arc<AppCtx>) -> Router {
         .route(
             "/{id}",
             get(handlers::get_book)
-                .patch(handlers::update_book)
-                .delete(handlers::delete_book),
+                .patch(handlers::update_container)
+                .delete(handlers::delete_container),
         )
         .route("/{id}/items", get(handlers::list_book_items))
         .route("/{id}/sync", post(handlers::sync_book))

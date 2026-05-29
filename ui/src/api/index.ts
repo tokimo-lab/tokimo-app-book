@@ -207,15 +207,9 @@ export const bookApi = {
       useMutation({
         mutationFn: (input: {
           name: string;
-          type: string;
-          avatar: Record<string, unknown> | null;
-          description: string | null;
-          sources: Array<{
-            sourceId: string;
-            rootPath: string;
-            sortOrder: number;
-            isDefaultDownload: boolean;
-          }>;
+          kind: string;
+          sourceId?: string;
+          rootPath?: string;
         }) => apiPost<BookContainerOutput>("/api/apps/book", input),
         onSuccess: opts?.onSuccess,
         onError: opts?.onError,
@@ -230,15 +224,10 @@ export const bookApi = {
       useMutation({
         mutationFn: (input: {
           id: string;
-          name: string;
-          avatar: Record<string, unknown> | null;
-          description: string | null;
-          sources: Array<{
-            sourceId: string;
-            rootPath: string;
-            sortOrder: number;
-            isDefaultDownload: boolean;
-          }>;
+          name?: string;
+          kind?: string;
+          sourceId?: string;
+          rootPath?: string;
         }) => {
           const { id, ...body } = input;
           return apiPatch<void>(

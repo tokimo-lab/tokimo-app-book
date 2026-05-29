@@ -1,4 +1,7 @@
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set, TransactionTrait};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -36,12 +39,12 @@ impl ContainersRepo {
         Ok(Containers::find_by_id(id).one(db).await?)
     }
 
-    #[allow(dead_code)]
     pub async fn create<C: ConnectionTrait>(
         db: &C,
         user_id: Uuid,
         name: String,
         kind: String,
+        source_id: Option<Uuid>,
         root_path: String,
     ) -> Result<containers::Model, AppError> {
         let now = chrono::Utc::now().into();
@@ -49,6 +52,7 @@ impl ContainersRepo {
             user_id: Set(user_id),
             name: Set(name),
             kind: Set(kind),
+            source_id: Set(source_id),
             root_path: Set(root_path),
             sort_order: Set(0),
             created_at: Set(now),
@@ -56,6 +60,37 @@ impl ContainersRepo {
             ..Default::default()
         };
         Ok(Containers::insert(am).exec_with_returning(db).await?)
+    }
+
+    pub async fn update<C: ConnectionTrait>(
+        db: &C,
+        id: Uuid,
+        name: Option<String>,
+        kind: Option<String>,
+        source_id: Option<Uuid>,
+        root_path: Option<String>,
+    ) -> Result<Option<containers::Model>, AppError> {
+        if Self::get_by_id(db, id).await?.is_none() {
+            return Ok(None);
+        }
+        let mut am = ContainersActive {
+            id: Set(id),
+            updated_at: Set(chrono::Utc::now().into()),
+            ..Default::default()
+        };
+        if let Some(n) = name {
+            am.name = Set(n);
+        }
+        if let Some(k) = kind {
+            am.kind = Set(k);
+        }
+        if let Some(sid) = source_id {
+            am.source_id = Set(Some(sid));
+        }
+        if let Some(rp) = root_path {
+            am.root_path = Set(rp);
+        }
+        Ok(Some(am.update(db).await?))
     }
 
     pub async fn reorder(db: &sea_orm::DatabaseConnection, ids: Vec<Uuid>) -> Result<(), AppError> {
@@ -78,7 +113,6 @@ impl ContainersRepo {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub async fn delete<C: ConnectionTrait>(db: &C, id: Uuid) -> Result<(), AppError> {
         Containers::delete_by_id(id).exec(db).await?;
         Ok(())

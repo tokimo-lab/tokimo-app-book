@@ -76,12 +76,9 @@ export default function BookApp() {
 
       openModalWindow({
         component: () => import("./BookLibraryEditorWindow"),
-        parentWindowId: windowId,
         title: opts.bookId ? t("modalSettingsTitle") : t("modalCreateTitle"),
         width: 720,
         height: 640,
-        noResize: true,
-        noMinimize: true,
         metadata,
       });
     },

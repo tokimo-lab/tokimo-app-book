@@ -68,22 +68,132 @@ impl ListItemsQuery {
     }
 }
 
+// ── Container output shape (camelCase, UI-compatible) ────────────────────────
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerSource {
+    source_id: Uuid,
+    root_path: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerOutput {
+    id: Uuid,
+    name: String,
+    #[serde(rename = "type")]
+    kind: String,
+    avatar: Option<serde_json::Value>,
+    description: Option<String>,
+    item_count: i64,
+    sync_status: Option<String>,
+    root_path: String,
+    source_id: Option<Uuid>,
+    source_type: Option<String>,
+    sources: Vec<ContainerSource>,
+}
+
+fn container_to_output(c: containers::Model) -> ContainerOutput {
+    let sources = if let Some(sid) = c.source_id {
+        vec![ContainerSource { source_id: sid, root_path: c.root_path.clone() }]
+    } else {
+        vec![]
+    };
+    ContainerOutput {
+        id: c.id,
+        name: c.name,
+        kind: c.kind,
+        avatar: None,
+        description: None,
+        item_count: 0,
+        sync_status: None,
+        root_path: c.root_path,
+        source_id: c.source_id,
+        source_type: c.source_type,
+        sources,
+    }
+}
+
+// ── Container CRUD handlers ───────────────────────────────────────────────────
+
 pub async fn list_books(
     State(ctx): State<Arc<AppCtx>>,
     Query(_q): Query<ListBooksQuery>,
-) -> Result<Json<ApiResponse<Vec<containers::Model>>>, AppError> {
-    Ok(ok(ContainersRepo::list_all(&ctx.db).await?))
+) -> Result<Json<ApiResponse<Vec<ContainerOutput>>>, AppError> {
+    let rows = ContainersRepo::list_all(&ctx.db).await?;
+    Ok(ok(rows.into_iter().map(container_to_output).collect()))
 }
 
 pub async fn get_book(
     State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<Uuid>,
-) -> Result<Json<ApiResponse<containers::Model>>, AppError> {
+) -> Result<Json<ApiResponse<ContainerOutput>>, AppError> {
     let container = ContainersRepo::get_by_id(&ctx.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;
-    Ok(ok(container))
+    Ok(ok(container_to_output(container)))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct CreateContainerRequest {
+    name: String,
+    kind: String,
+    #[serde(rename = "sourceId", alias = "source_id")]
+    source_id: Option<Uuid>,
+    #[serde(rename = "rootPath", alias = "root_path", default)]
+    root_path: String,
+}
+
+pub async fn create_container(
+    State(ctx): State<Arc<AppCtx>>,
+    Json(req): Json<CreateContainerRequest>,
+) -> Result<Json<ApiResponse<ContainerOutput>>, AppError> {
+    let container = ContainersRepo::create(
+        &ctx.db,
+        Uuid::nil(),
+        req.name,
+        req.kind,
+        req.source_id,
+        req.root_path,
+    )
+    .await?;
+    Ok(ok(container_to_output(container)))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateContainerRequest {
+    name: Option<String>,
+    kind: Option<String>,
+    #[serde(rename = "sourceId", alias = "source_id")]
+    source_id: Option<Uuid>,
+    #[serde(rename = "rootPath", alias = "root_path")]
+    root_path: Option<String>,
+}
+
+pub async fn update_container(
+    State(ctx): State<Arc<AppCtx>>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<UpdateContainerRequest>,
+) -> Result<Json<ApiResponse<ContainerOutput>>, AppError> {
+    let container = ContainersRepo::update(&ctx.db, id, req.name, req.kind, req.source_id, req.root_path)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;
+    Ok(ok(container_to_output(container)))
+}
+
+pub async fn delete_container(
+    State(ctx): State<Arc<AppCtx>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    ContainersRepo::get_by_id(&ctx.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;
+    ContainersRepo::delete(&ctx.db, id).await?;
+    Ok(ok(()))
+}
+
+// ── Item CRUD handlers ────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
 pub struct CreateBookRequest {
@@ -97,7 +207,7 @@ pub struct CreateBookRequest {
     metadata: Option<serde_json::Value>,
 }
 
-pub async fn create_book(
+pub async fn create_item(
     State(ctx): State<Arc<AppCtx>>,
     Json(req): Json<CreateBookRequest>,
 ) -> Result<Json<ApiResponse<items::Model>>, AppError> {
@@ -129,7 +239,7 @@ pub struct UpdateBookRequest {
     metadata: Option<serde_json::Value>,
 }
 
-pub async fn update_book(
+pub async fn update_item(
     State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateBookRequest>,
@@ -151,7 +261,7 @@ pub async fn update_book(
     Ok(ok(item))
 }
 
-pub async fn delete_book(
+pub async fn delete_item(
     State(ctx): State<Arc<AppCtx>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {

@@ -115,37 +115,29 @@ export default function BookLibraryEditor({
     const values = await form.validateFields();
     const rawBindings =
       (form.getFieldValue("bindings") as VideoBinding[] | undefined) ?? [];
-    const sources = rawBindings
-      .filter((b) => b.sourceId && b.rootPath)
-      .map((b, i) => ({
-        sourceId: b.sourceId,
-        rootPath: b.rootPath,
-        sortOrder: i,
-        isDefaultDownload: b.isDefaultDownload ?? i === 0,
-      }));
+    const firstBinding = rawBindings.find((b) => b.sourceId && b.rootPath);
 
     let savedId: string;
     if (book) {
       await updateMutation.mutateAsync({
         id: book.id,
         name: values.name as string,
-        avatar: avatar as Record<string, unknown> | null,
-        description: (values.description as string) || null,
-        sources,
+        kind: book.type,
+        sourceId: firstBinding?.sourceId,
+        rootPath: firstBinding?.rootPath,
       });
       savedId = book.id;
     } else {
       const created = await createMutation.mutateAsync({
         name: values.name as string,
-        type: (values.type as string) || "book",
-        avatar: avatar as Record<string, unknown> | null,
-        description: (values.description as string) || null,
-        sources,
+        kind: (values.type as string) || "book",
+        sourceId: firstBinding?.sourceId,
+        rootPath: firstBinding?.rootPath,
       });
       savedId = created.id;
     }
     onSaved?.(savedId);
-  }, [form, book, avatar, createMutation, updateMutation, onSaved]);
+  }, [form, book, createMutation, updateMutation, onSaved]);
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
