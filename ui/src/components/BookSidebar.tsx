@@ -1,6 +1,7 @@
 import { AppSidebar, CircularProgress, Tooltip } from "@tokimo/ui";
 import { PanelLeft, PanelLeftClose, Plus, Settings } from "lucide-react";
 import type { BookLibraryProgressState } from "../hooks/useLibraryItemProgress";
+import { useBookI18n } from "../i18n";
 import type { BookContainerOutput } from "../types";
 import { LibraryIcon } from "./AppIcon";
 
@@ -25,6 +26,7 @@ export default function BookSidebar({
   onToggleCollapse?: () => void;
   settingsActive?: boolean;
 }) {
+  const { t } = useBookI18n();
   const sections = [
     {
       items: libraries.map((lib) => {
@@ -63,7 +65,7 @@ export default function BookSidebar({
 
   const collapsedFooter = (
     <div className="flex flex-col items-center gap-1">
-      <Tooltip title="新建书库" placement="right">
+      <Tooltip title={t("sidebarNewLibrary")} placement="right">
         <button
           type="button"
           onClick={onCreateClick}
@@ -72,7 +74,7 @@ export default function BookSidebar({
           <Plus className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="书库设置" placement="right">
+      <Tooltip title={t("sidebarLibrarySettings")} placement="right">
         <button
           type="button"
           onClick={onSettingsClick}
@@ -85,7 +87,7 @@ export default function BookSidebar({
           <Settings className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="展开侧边栏" placement="right">
+      <Tooltip title={t("sidebarExpand")} placement="right">
         <button
           type="button"
           onClick={onToggleCollapse}
@@ -99,7 +101,7 @@ export default function BookSidebar({
 
   const fullFooter = (
     <div className="flex items-center gap-1">
-      <Tooltip title="新建书库">
+      <Tooltip title={t("sidebarNewLibrary")}>
         <button
           type="button"
           onClick={onCreateClick}
@@ -108,7 +110,7 @@ export default function BookSidebar({
           <Plus className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="书库设置">
+      <Tooltip title={t("sidebarLibrarySettings")}>
         <button
           type="button"
           onClick={onSettingsClick}
@@ -121,7 +123,7 @@ export default function BookSidebar({
           <Settings className="h-4 w-4" />
         </button>
       </Tooltip>
-      <Tooltip title="收起侧边栏">
+      <Tooltip title={t("sidebarCollapse")}>
         <button
           type="button"
           onClick={onToggleCollapse}

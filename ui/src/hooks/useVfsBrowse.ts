@@ -1,6 +1,7 @@
-import type { ShellApi } from "@tokimo/sdk";
+import { useRuntimeCtx, type ShellApi } from "@tokimo/sdk";
 import type { PathSelectorBrowseArgs } from "@tokimo/ui";
 import { useCallback } from "react";
+import { getBookI18n } from "../i18n";
 import {
   type BrowseBridge,
   registerBrowseBridge,
@@ -14,6 +15,7 @@ import {
  * the modal-window boundary).
  */
 export function useVfsBrowse(shell: ShellApi) {
+  const ctx = useRuntimeCtx();
   return useCallback(
     (args: PathSelectorBrowseArgs) =>
       new Promise<string | null>((resolve) => {
@@ -23,17 +25,18 @@ export function useVfsBrowse(shell: ShellApi) {
           initialPath: args.initialPath,
           sourceId: args.sourceId,
           protocolPrefix: args.protocolPrefix,
+          locale: ctx.locale,
           resolve,
         };
         const bridgeId = registerBrowseBridge(bridge);
         shell.openModalWindow({
           component: () => import("../components/VfsBrowserWindow"),
-          title: "选择目录",
+          title: getBookI18n(ctx.locale).t("selectDirectory"),
           width: 600,
           height: 480,
           metadata: { bridgeId },
         });
       }),
-    [shell],
+    [shell, ctx.locale],
   );
 }

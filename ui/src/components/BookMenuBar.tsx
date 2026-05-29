@@ -5,11 +5,13 @@ import { Checkbox, Modal } from "@tokimo/ui";
 import { Download, FolderSync, RefreshCw } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { bookApi } from "../api";
+import { useBookI18n } from "../i18n";
 import BookDownloadModal from "./BookDownloadModal";
 
 export default function BookMenuBar({ children }: { children: ReactNode }) {
   const { route, navigate } = useWindowNav();
   const toast = useToast();
+  const { t } = useBookI18n();
   const qc = useQueryClient();
 
   const bookIdMatch = /^\/library\/([^/]+)/.exec(route);
@@ -21,13 +23,13 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
 
   const syncMut = bookApi.sync.useMutation({
     onSuccess: () => {
-      toast.success("同步已开始");
+      toast.success(t("syncStarted"));
       setSyncModalOpen(false);
       bookApi.list.invalidate(qc);
       bookApi.listItems.invalidate(qc);
     },
     onError: (error) => {
-      toast.error((error as Error).message || "同步失败");
+      toast.error((error as Error).message || t("syncFailed"));
     },
   });
 
@@ -38,11 +40,11 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
       menus: [
         {
           key: "actions",
-          label: "操作",
+          label: t("menuActions"),
           items: [
             {
               key: "refresh",
-              label: "刷新",
+              label: t("commonRefresh"),
               icon: <RefreshCw size={14} />,
               onClick: () => {
                 bookApi.list.invalidate(qc);
@@ -51,14 +53,14 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
             },
             {
               key: "download-book",
-              label: "下载小说",
+              label: t("menuDownloadBook"),
               icon: <Download size={14} />,
               onClick: () => setDownloadOpen(true),
             },
             { type: "divider" as const },
             {
               key: "sync",
-              label: "同步资料库",
+              label: t("menuSyncLibrary"),
               icon: <FolderSync size={14} />,
               disabled: syncMut.isPending,
               onClick: () => {
@@ -73,10 +75,10 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
         appId: bookId,
         searchType: "book" as const,
         onSelect: (item) =>
-          navigate(`/books/${item.id}`, `TokimoBook · ${item.title ?? "Book"}`),
+          navigate(`/books/${item.id}`, `${t("appName")} · ${item.title ?? t("appFallbackBook")}`),
       },
     };
-  }, [bookId, qc, syncMut.isPending, navigate]);
+  }, [bookId, qc, syncMut.isPending, navigate, t]);
 
   useMenuBar(menuBarConfig);
 
@@ -86,9 +88,9 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
 
       <Modal
         open={syncModalOpen}
-        title="同步小说库"
-        okText="开始同步"
-        cancelText="取消"
+        title={t("syncModalTitle")}
+        okText={t("syncModalOk")}
+        cancelText={t("commonCancel")}
         confirmLoading={syncMut.isPending}
         onCancel={() => setSyncModalOpen(false)}
         onOk={async () => {
@@ -106,10 +108,10 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
           checked={syncClearData}
           onChange={(e) => setSyncClearData(e.target.checked)}
         >
-          清空数据重新同步
+          {t("syncClearData")}
         </Checkbox>
         <p className="mt-2 text-xs text-[var(--text-muted)]">
-          勾选后将删除应用中所有已有条目并重新完整同步，适合修复数据异常。
+          {t("syncClearDataHint")}
         </p>
       </Modal>
 
@@ -118,7 +120,7 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
           open={downloadOpen}
           onClose={() => setDownloadOpen(false)}
           bookId={bookId}
-          appName="小说库"
+          appName={t("libraryAppName")}
         />
       )}
     </>

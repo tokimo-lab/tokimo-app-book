@@ -8,23 +8,23 @@ export { getAvatarColor, getAvatarIcon, posterThumbUrl } from "@tokimo/sdk";
 
 // ── Format helpers ───────────────────────────────────────────────────────────
 
-export function formatWordCount(count: number | null | undefined): string {
+export function formatWordCount(
+  count: number | null | undefined,
+  locale?: string | null,
+): string {
   if (count == null) return "";
-  if (count >= 10000) return `${(count / 10000).toFixed(1)}万字`;
-  return `${count}字`;
+  if (locale?.toLowerCase().startsWith("zh") ?? true) {
+    if (count >= 10000) return `${(count / 10000).toFixed(1)}万字`;
+    return `${count}字`;
+  }
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K words`;
+  return `${count} words`;
 }
 
 export function formatFileSize(bytes: number): string {
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(2)} GB`;
   if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
   return `${(bytes / 1e3).toFixed(0)} KB`;
-}
-
-export function serialStatusLabel(status: string | null | undefined): string {
-  if (!status) return "";
-  if (status === "completed") return "已完结";
-  if (status === "ongoing") return "连载中";
-  return status;
 }
 
 export function serialStatusColor(

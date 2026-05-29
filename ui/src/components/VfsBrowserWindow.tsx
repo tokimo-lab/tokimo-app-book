@@ -10,25 +10,26 @@ import {
   ConfigProvider,
   type FileBrowserVfsApi,
   FileBrowserWindow,
-  zhCN,
 } from "@tokimo/ui";
 import { useState } from "react";
 import { vfsBrowse, vfsStat } from "../api";
+import { getBookI18n } from "../i18n";
 import { clearBrowseBridge, getBrowseBridge } from "../shared/browse-bridge";
 
-function t(key: string): string {
+function createFileBrowserTranslator(locale: string | null | undefined) {
+  const { t } = getBookI18n(locale);
   const dict: Record<string, string> = {
-    "pathSelector.refresh": "刷新",
-    "pathSelector.selectDirectory": "选择此目录",
-    "pathSelector.emptyDirectory": "该目录为空",
-    "pathSelector.colName": "名称",
-    "pathSelector.colPermissions": "权限",
-    "pathSelector.colSize": "大小",
-    "pathSelector.colModified": "修改时间",
-    "pathSelector.cannotAccess": "无法访问该目录",
-    "common.cancel": "取消",
+    "pathSelector.refresh": t("pathRefresh"),
+    "pathSelector.selectDirectory": t("pathSelectDirectory"),
+    "pathSelector.emptyDirectory": t("pathEmptyDirectory"),
+    "pathSelector.colName": t("pathColName"),
+    "pathSelector.colPermissions": t("pathColPermissions"),
+    "pathSelector.colSize": t("pathColSize"),
+    "pathSelector.colModified": t("pathColModified"),
+    "pathSelector.cannotAccess": t("pathCannotAccess"),
+    "common.cancel": t("commonCancel"),
   };
-  return dict[key] ?? key;
+  return (key: string): string => dict[key] ?? key;
 }
 
 function formatLong(value: string | null | undefined): string {
@@ -58,6 +59,9 @@ export default function VfsBrowserWindow({ win }: { win: ShellWindowHandle }) {
 
   if (!bridge) return null;
 
+  const { uiLocale } = getBookI18n(bridge.locale);
+  const t = createFileBrowserTranslator(bridge.locale);
+
   const finish = (path: string | null) => {
     bridge.resolve(path);
     clearBrowseBridge(bridgeId);
@@ -65,7 +69,7 @@ export default function VfsBrowserWindow({ win }: { win: ShellWindowHandle }) {
   };
 
   return (
-    <ConfigProvider locale={zhCN}>
+    <ConfigProvider locale={uiLocale}>
       <FileBrowserWindow
         initialPath={bridge.initialPath}
         sourceId={bridge.sourceId}

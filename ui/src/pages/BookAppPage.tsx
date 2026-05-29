@@ -3,6 +3,7 @@ import { Empty, PosterCard, Spin, Tag } from "@tokimo/ui";
 import { BookOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { bookApi } from "../api";
+import { type BookTranslator, useBookI18n } from "../i18n";
 import type { BookOutput } from "../types";
 import { formatWordCount, posterThumbUrl } from "../utils";
 
@@ -11,12 +12,12 @@ const CARD_GAP = 12;
 const CARD_TITLE_HEIGHT = 52;
 
 const SORT_OPTIONS = [
-  { label: "最近添加", value: "addedAt" },
-  { label: "标题 A-Z", value: "title_asc" },
-  { label: "标题 Z-A", value: "title_desc" },
-  { label: "作者", value: "author_asc" },
-  { label: "年份 最新", value: "year_desc" },
-  { label: "字数 最多", value: "wordCount_desc" },
+  { labelKey: "sortRecentlyAdded", value: "addedAt" },
+  { labelKey: "sortTitleAsc", value: "title_asc" },
+  { labelKey: "sortTitleDesc", value: "title_desc" },
+  { labelKey: "sortAuthorAsc", value: "author_asc" },
+  { labelKey: "sortYearDesc", value: "year_desc" },
+  { labelKey: "sortWordCountDesc", value: "wordCount_desc" },
 ] as const;
 
 type SortValue = (typeof SORT_OPTIONS)[number]["value"];
@@ -41,9 +42,13 @@ function parseSortValue(v: SortValue): { sortBy: string; sortDir: string } {
 function BookCard({
   item,
   onClick,
+  t,
+  locale,
 }: {
   item: BookOutput;
   onClick: () => void;
+  t: BookTranslator;
+  locale: string | null | undefined;
 }) {
   return (
     <PosterCard
@@ -62,21 +67,21 @@ function BookCard({
           {item.serialStatus && (
             <span className="absolute top-2 right-0 inline-flex items-center rounded-l-md border border-r-0 border-white/12 bg-[var(--sidebar-bg)] px-2 py-0.5 text-[10px] font-medium backdrop-blur-md">
               {item.serialStatus === "completed" ? (
-                <span className="text-emerald-500">完结</span>
+                <span className="text-emerald-500">{t("serialCompleted")}</span>
               ) : (
-                <span className="text-blue-500">连载</span>
+                <span className="text-blue-500">{t("serialOngoing")}</span>
               )}
             </span>
           )}
           {item.chapterCount != null && item.chapterCount > 0 && (
             <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white backdrop-blur-sm">
-              {item.chapterCount}章
+              {t("chapterCount", { count: item.chapterCount })}
             </span>
           )}
           {!item.scrapedAt && (
             <span
               className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full bg-orange-400 ring-1 ring-black/30"
-              title="未刮削"
+              title={t("notScraped")}
             />
           )}
         </>
@@ -90,7 +95,7 @@ function BookCard({
         {item.title}
       </p>
       <p className="truncate text-xs text-fg-muted">
-        {[item.author, item.wordCount ? formatWordCount(item.wordCount) : null]
+        {[item.author, item.wordCount ? formatWordCount(item.wordCount, locale) : null]
           .filter(Boolean)
           .join(" · ")}
       </p>
@@ -106,6 +111,7 @@ export default function BookAppPage({
   syncing?: boolean;
 }) {
   const { navigate } = useWindowNav();
+  const { t, locale } = useBookI18n();
 
   const [page, setPage] = useState(1);
   const [sortValue, setSortValue] = useState<SortValue>("addedAt");
@@ -186,9 +192,9 @@ export default function BookAppPage({
 
   const handleItemClick = useCallback(
     (item: BookOutput) => {
-      navigate(`/books/${item.id}`, `TokimoBook · ${item.title ?? "Book"}`);
+      navigate(`/books/${item.id}`, `${t("appName")} · ${item.title ?? t("appFallbackBook")}`);
     },
-    [navigate],
+    [navigate, t],
   );
 
   if (
@@ -208,11 +214,11 @@ export default function BookAppPage({
       <section className="rounded-xl border border-border-base bg-black/[0.02] p-4 dark:bg-white/[0.03]">
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2">
-            <h5 className="text-base font-semibold text-fg-primary">全部</h5>
+            <h5 className="text-base font-semibold text-fg-primary">{t("commonAll")}</h5>
             <Tag>{total}</Tag>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-0.5 text-xs text-fg-muted">排序</span>
+            <span className="mr-0.5 text-xs text-fg-muted">{t("commonSort")}</span>
             {SORT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -224,7 +230,7 @@ export default function BookAppPage({
                     : "bg-black/[0.05] text-fg-secondary hover:bg-black/[0.1] dark:bg-white/[0.08] dark:hover:bg-white/[0.14]"
                 }`}
               >
-                {opt.label}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -238,7 +244,7 @@ export default function BookAppPage({
               <Spin />
             </div>
           ) : items.length === 0 ? (
-            <Empty description="暂无书籍，请先同步" />
+            <Empty description={t("emptyBooksSync")} />
           ) : (
             <>
               <div
@@ -253,6 +259,8 @@ export default function BookAppPage({
                     <BookCard
                       item={item}
                       onClick={() => handleItemClick(item)}
+                      t={t}
+                      locale={locale}
                     />
                   </div>
                 ))}
@@ -262,7 +270,7 @@ export default function BookAppPage({
               <div className="mt-2 flex justify-center py-3">
                 {booksQuery.isFetching && <Spin />}
                 {!hasMore && total > 0 && !booksQuery.isFetching && (
-                  <p className="text-xs text-fg-muted">已加载全部 {total} 本</p>
+                  <p className="text-xs text-fg-muted">{t("loadedAllBooks", { total })}</p>
                 )}
               </div>
             </>

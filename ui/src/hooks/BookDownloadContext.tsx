@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useBookI18n } from "../i18n";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ export function BookDownloadProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useBookI18n();
   const [tasks, setTasks] = useState<BookDownloadTask[]>([]);
   const abortRefs = useRef<Map<string, AbortController>>(new Map());
 
@@ -167,7 +169,10 @@ export function BookDownloadProvider({
           {
             time: Date.now(),
             phase: "start",
-            message: `开始下载《${params.title}》(${params.provider})`,
+            message: t("downloadLogStart", {
+              title: params.title,
+              provider: params.provider,
+            }),
           },
         ],
         startedAt: Date.now(),
@@ -212,12 +217,12 @@ export function BookDownloadProvider({
                     : t,
                 ),
               );
-              addLog(taskId, "info", `获取书籍信息: ${total} 章`);
+              addLog(taskId, "info", t("downloadLogBookInfo", { total }));
             } catch {
               /* skip */
             }
           } else if (evt.event === "searching_alternatives") {
-            addLog(taskId, "info", "正在搜索其他源以补全 VIP 章节…");
+            addLog(taskId, "info", t("downloadLogSearchingAlternatives"));
           } else if (evt.event === "alt_sources_ready") {
             try {
               const d = JSON.parse(evt.data) as { mappedChapters?: number };
@@ -225,7 +230,7 @@ export function BookDownloadProvider({
                 addLog(
                   taskId,
                   "info",
-                  `已找到其他源，可覆盖 ${d.mappedChapters} 个章节`,
+                  t("downloadLogAltSourcesReady", { count: d.mappedChapters }),
                 );
               }
             } catch {
@@ -291,9 +296,18 @@ export function BookDownloadProvider({
             addLog(
               taskId,
               "done",
-              `下载完成: 成功 ${downloaded} 章，失败 ${failed} 章` +
-                (vipSkipped > 0 ? `，跳过 VIP ${vipSkipped} 章` : "") +
-                (rescued > 0 ? `，救援 ${rescued} 章` : ""),
+              t("downloadLogCompleted", {
+                downloaded,
+                failed,
+                vip:
+                  vipSkipped > 0
+                    ? t("downloadLogVipSkipped", { count: vipSkipped })
+                    : "",
+                rescued:
+                  rescued > 0
+                    ? t("downloadLogRescued", { count: rescued })
+                    : "",
+              }),
             );
             abortRefs.current.delete(taskId);
             setTasks((prev) =>
@@ -319,7 +333,7 @@ export function BookDownloadProvider({
                 return evt.data;
               }
             })();
-            addLog(taskId, "error", `错误: ${msg}`);
+            addLog(taskId, "error", t("downloadLogError", { message: msg }));
             abortRefs.current.delete(taskId);
             setTasks((prev) =>
               prev.map((t) =>
@@ -339,7 +353,11 @@ export function BookDownloadProvider({
             ),
           );
         } else {
-          addLog(taskId, "error", `网络错误: ${(err as Error).message}`);
+          addLog(
+            taskId,
+            "error",
+            t("downloadLogNetworkError", { message: (err as Error).message }),
+          );
           setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, status: "failed" } : t)),
           );
@@ -349,7 +367,7 @@ export function BookDownloadProvider({
 
       return taskId;
     },
-    [addLog],
+    [addLog, t],
   );
 
   const cancelDownload = useCallback((taskId: string) => {

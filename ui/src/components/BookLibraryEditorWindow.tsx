@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ShellWindowHandle } from "@tokimo/sdk";
+import { RuntimeProvider, type ShellWindowHandle } from "@tokimo/sdk";
 import { ConfigProvider, ToastProvider } from "@tokimo/ui";
 import { useState } from "react";
+import { AppCtxProvider } from "../AppContext";
+import { getBookI18n } from "../i18n";
 import { getBridge, type ModalBridge } from "../modal-bridge";
 import BookLibraryEditor from "./BookLibraryEditor";
 
@@ -53,13 +55,19 @@ export default function BookLibraryEditorWindow({
 
   if (bridge?.kind !== "library-editor") return null;
 
+  const locale = getBookI18n(bridge.ctx.locale).uiLocale;
+
   return (
-    <ConfigProvider>
-      <ToastProvider>
-        <QueryClientProvider client={queryClient}>
-          <BookLibraryEditorContent win={win} bridge={bridge} />
-        </QueryClientProvider>
-      </ToastProvider>
-    </ConfigProvider>
+    <RuntimeProvider value={bridge.ctx}>
+      <AppCtxProvider value={bridge.ctx}>
+        <ConfigProvider locale={locale}>
+          <ToastProvider>
+            <QueryClientProvider client={queryClient}>
+              <BookLibraryEditorContent win={win} bridge={bridge} />
+            </QueryClientProvider>
+          </ToastProvider>
+        </ConfigProvider>
+      </AppCtxProvider>
+    </RuntimeProvider>
   );
 }

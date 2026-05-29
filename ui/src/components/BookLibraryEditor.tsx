@@ -23,12 +23,13 @@ import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bookApi, vfsApi } from "../api";
 import { useVfsBrowse } from "../hooks/useVfsBrowse";
+import { type BookTranslator, useBookI18n } from "../i18n";
 import type { BookContainerOutput } from "../types";
 
 const BOOK_TYPES = [
-  { value: "book", label: "小说" },
-  { value: "manga", label: "漫画" },
-  { value: "ebook", label: "电子书" },
+  { value: "book", labelKey: "libraryTypeBook" },
+  { value: "manga", labelKey: "libraryTypeManga" },
+  { value: "ebook", labelKey: "libraryTypeEbook" },
 ] as const;
 
 interface BookLibraryEditorProps {
@@ -47,6 +48,7 @@ export default function BookLibraryEditor({
   onCancel,
 }: BookLibraryEditorProps) {
   const toast = useToast();
+  const { t } = useBookI18n();
   const qc = useQueryClient();
   const [form] = Form.useForm();
   const onBrowse = useVfsBrowse(shell);
@@ -85,28 +87,28 @@ export default function BookLibraryEditor({
 
   const createMutation = bookApi.create.useMutation({
     onSuccess: () => {
-      toast.success("小说库已创建");
+      toast.success(t("libraryCreated"));
       bookApi.list.invalidate(qc);
     },
-    onError: (e) => toast.error(e.message || "创建失败"),
+    onError: (e) => toast.error(e.message || t("libraryCreateFailed")),
   });
 
   const updateMutation = bookApi.update.useMutation({
     onSuccess: () => {
-      toast.success("已保存");
+      toast.success(t("librarySaved"));
       bookApi.list.invalidate(qc);
     },
-    onError: (e) => toast.error(e.message || "保存失败"),
+    onError: (e) => toast.error(e.message || t("librarySaveFailed")),
   });
 
   const deleteMutation = bookApi.delete.useMutation({
     onSuccess: () => {
-      toast.success("小说库已删除");
+      toast.success(t("libraryDeleted"));
       bookApi.list.invalidate(qc);
       setDeleteOpen(false);
       onDeleted?.();
     },
-    onError: (e) => toast.error(e.message || "删除失败"),
+    onError: (e) => toast.error(e.message || t("libraryDeleteFailed")),
   });
 
   const handleSave = useCallback(async () => {
@@ -162,7 +164,7 @@ export default function BookLibraryEditor({
         >
           <div className="rounded-lg border border-border-base p-5">
             <h4 className="mb-4 text-sm font-semibold text-fg-primary">
-              基本信息
+              {t("editorBasicInfo")}
             </h4>
 
             <div className="mb-5">
@@ -172,13 +174,13 @@ export default function BookLibraryEditor({
             {!book && (
               <Form.Item
                 name="type"
-                label="库类型"
-                rules={[{ required: true, message: "请选择类型" }]}
+                label={t("editorLibraryType")}
+                rules={[{ required: true, message: t("editorSelectType") }]}
               >
                 <Select
-                  options={BOOK_TYPES.map((t) => ({
-                    label: t.label,
-                    value: t.value,
+                  options={BOOK_TYPES.map((type) => ({
+                    label: t(type.labelKey),
+                    value: type.value,
                   }))}
                 />
               </Form.Item>
@@ -186,20 +188,20 @@ export default function BookLibraryEditor({
 
             <Form.Item
               name="name"
-              label="名称"
-              rules={[{ required: true, message: "请输入小说库名称" }]}
+              label={t("commonName")}
+              rules={[{ required: true, message: t("editorNameRequired") }]}
             >
-              <Input placeholder="如：我的小说" size="large" />
+              <Input placeholder={t("editorNamePlaceholder")} size="large" />
             </Form.Item>
 
-            <Form.Item name="description" label="描述" className="!mb-0">
-              <Input.TextArea placeholder="可选描述" rows={3} />
+            <Form.Item name="description" label={t("editorDescription")} className="!mb-0">
+              <Input.TextArea placeholder={t("editorDescriptionPlaceholder")} rows={3} />
             </Form.Item>
           </div>
 
           <div className="rounded-lg border border-border-base p-5">
             <h4 className="mb-4 text-sm font-semibold text-fg-primary">
-              路径配置
+              {t("editorPathConfig")}
             </h4>
             <StorageBindingsField
               sources={vfsSources}
@@ -215,16 +217,16 @@ export default function BookLibraryEditor({
             {book && (
               <Button variant="danger" onClick={() => setDeleteOpen(true)}>
                 <Trash2 size={14} className="mr-1" />
-                删除
+                {t("commonDelete")}
               </Button>
             )}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="default" onClick={onCancel}>
-              取消
+              {t("commonCancel")}
             </Button>
             <Button loading={isPending} onClick={() => void handleSave()}>
-              {book ? "保存" : "创建"}
+              {book ? t("commonSave") : t("commonCreate")}
             </Button>
           </div>
         </div>
@@ -242,6 +244,7 @@ export default function BookLibraryEditor({
           }}
           onConfirm={() => deleteMutation.mutate(book.id)}
           loading={deleteMutation.isPending}
+          t={t}
         />
       )}
     </div>
@@ -256,6 +259,7 @@ function DeleteConfirmModal({
   onCancel,
   onConfirm,
   loading,
+  t,
 }: {
   book: BookContainerOutput;
   open: boolean;
@@ -264,15 +268,13 @@ function DeleteConfirmModal({
   onCancel: () => void;
   onConfirm: () => void;
   loading: boolean;
+  t: BookTranslator;
 }) {
   return (
-    <Modal title="⚠️ 删除小说库" open={open} onCancel={onCancel} footer={null}>
+    <Modal title={t("deleteLibraryTitle")} open={open} onCancel={onCancel} footer={null}>
       <div className="space-y-4 pt-1">
         <p className="text-sm text-fg-secondary">
-          此操作将永久删除{" "}
-          <span className="font-semibold text-fg-primary">{book.name}</span>{" "}
-          及其所有数据，
-          <span className="font-semibold text-red-500">不可恢复</span>。
+          {t("deleteLibraryMessage", { name: book.name, irreversible: t("irreversible") })}
         </p>
         <Input
           value={deleteInput}
@@ -284,7 +286,7 @@ function DeleteConfirmModal({
         />
         <div className="flex justify-end gap-2">
           <Button variant="default" onClick={onCancel}>
-            取消
+            {t("commonCancel")}
           </Button>
           <Button
             variant="danger"
@@ -292,7 +294,7 @@ function DeleteConfirmModal({
             loading={loading}
             onClick={onConfirm}
           >
-            确认删除
+            {t("confirmDelete")}
           </Button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { AppSetupGuide, Spin } from "@tokimo/ui";
 import { FileText, Import, Library, Plus } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { bookApi } from "../api";
+import { useBookI18n } from "../i18n";
 import { useLibraryItemProgress } from "../hooks/useLibraryItemProgress";
 import { registerBridge } from "../modal-bridge";
 import BookAppPage from "../pages/BookAppPage";
@@ -25,6 +26,7 @@ export default function BookApp() {
   const windowId = useWindowId();
   const { openModalWindow } = useWindowActions();
   const ctx = useRuntimeCtx();
+  const { t } = useBookI18n();
   const qc = useQueryClient();
 
   const { libraryId: activeLibraryId, bookId } = parseBookRoute(route);
@@ -75,7 +77,7 @@ export default function BookApp() {
       openModalWindow({
         component: () => import("./BookLibraryEditorWindow"),
         parentWindowId: windowId,
-        title: opts.bookId ? "书库设置" : "创建书库",
+        title: opts.bookId ? t("modalSettingsTitle") : t("modalCreateTitle"),
         width: 720,
         height: 640,
         noResize: true,
@@ -83,7 +85,7 @@ export default function BookApp() {
         metadata,
       });
     },
-    [ctx, openModalWindow, windowId, activeLibraryId, libraries, replace, qc],
+    [ctx, openModalWindow, windowId, activeLibraryId, libraries, replace, qc, t],
   );
 
   const handleAddLibrary = useCallback(() => {
@@ -109,14 +111,14 @@ export default function BookApp() {
       <AppSetupGuide
         imageSrc="/api/apps/book/assets/icon.png"
         accentColor="amber"
-        title="开始使用 TokimoBook"
-        description="管理你的数字书库，下载小说，追踪阅读进度"
+        title={t("setupTitle")}
+        description={t("setupDescription")}
         features={[
-          { icon: Import, label: "从多个源下载小说" },
-          { icon: FileText, label: "跨设备同步阅读进度" },
-          { icon: Library, label: "统一管理书库" },
+          { icon: Import, label: t("setupFeatureDownload") },
+          { icon: FileText, label: t("setupFeatureProgress") },
+          { icon: Library, label: t("setupFeatureLibrary") },
         ]}
-        actionLabel="添加书库"
+        actionLabel={t("setupAction")}
         actionIcon={Plus}
         onAction={handleAddLibrary}
       />

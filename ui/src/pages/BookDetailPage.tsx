@@ -11,13 +11,13 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { bookApi } from "../api";
+import { type BookTranslator, useBookI18n } from "../i18n";
 import type { BookChapterOutput, BookVolumeOutput } from "../types";
 import {
   formatFileSize,
   formatWordCount,
   posterThumbUrl,
   serialStatusColor,
-  serialStatusLabel,
 } from "../utils";
 
 // ── Local SectionTitle ────────────────────────────────────────────────────────
@@ -31,9 +31,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function VolumeSection({
   volume,
   onOpenChapter,
+  t,
+  locale,
 }: {
   volume: BookVolumeOutput;
   onOpenChapter: (chapterId: string) => void;
+  t: BookTranslator;
+  locale: string | null | undefined;
 }) {
   const [open, setOpen] = useState(true);
 
@@ -51,12 +55,13 @@ function VolumeSection({
         )}
         <div className="min-w-0 flex-1">
           <span className="text-sm font-semibold">
-            第{volume.volumeNumber}卷{volume.title ? ` · ${volume.title}` : ""}
+            {t("volumeTitle", { number: volume.volumeNumber })}
+            {volume.title ? ` · ${volume.title}` : ""}
           </span>
           <span className="ml-3 text-xs text-fg-muted">
-            {volume.chapterCount ?? volume.chapters.length}章
+            {t("chapterCount", { count: volume.chapterCount ?? volume.chapters.length })}
             {volume.wordCount != null && volume.wordCount > 0 && (
-              <> · {formatWordCount(volume.wordCount)}</>
+              <> · {formatWordCount(volume.wordCount, locale)}</>
             )}
           </span>
         </div>
@@ -68,6 +73,8 @@ function VolumeSection({
               key={ch.id}
               chapter={ch}
               onClick={() => onOpenChapter(ch.id)}
+              t={t}
+              locale={locale}
             />
           ))}
         </div>
@@ -80,9 +87,13 @@ function VolumeSection({
 function ChapterRow({
   chapter,
   onClick,
+  t,
+  locale,
 }: {
   chapter: BookChapterOutput;
   onClick: () => void;
+  t: BookTranslator;
+  locale: string | null | undefined;
 }) {
   return (
     <button
@@ -94,11 +105,11 @@ function ChapterRow({
         #{chapter.chapterNumber}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm">
-        {chapter.title ?? `第${chapter.chapterNumber}章`}
+        {chapter.title ?? t("chapterTitle", { number: chapter.chapterNumber })}
       </span>
       {chapter.wordCount != null && chapter.wordCount > 0 && (
         <span className="flex-shrink-0 text-xs text-fg-muted">
-          {formatWordCount(chapter.wordCount)}
+          {formatWordCount(chapter.wordCount, locale)}
         </span>
       )}
     </button>
@@ -106,12 +117,18 @@ function ChapterRow({
 }
 
 // ── Favorite Button ───────────────────────────────────────────────────────────
-function FavoriteButton({ isFavorite }: { isFavorite: boolean }) {
+function FavoriteButton({
+  isFavorite,
+  t,
+}: {
+  isFavorite: boolean;
+  t: BookTranslator;
+}) {
   return (
     <button
       type="button"
       className="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full opacity-50 transition-colors hover:bg-black/[0.06] dark:hover:bg-white/[0.1]"
-      title="收藏（功能开发中）"
+      title={t("favoriteComingSoon")}
       disabled
     >
       <Heart
@@ -125,6 +142,7 @@ function FavoriteButton({ isFavorite }: { isFavorite: boolean }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function BookDetailPage() {
   const { route, goBack } = useWindowNav();
+  const { t, locale } = useBookI18n();
 
   // Parse bookId from route: /books/:id
   const bookId = useMemo(() => {
@@ -176,10 +194,10 @@ export default function BookDetailPage() {
     return (
       <div className="px-6 py-6">
         <Button icon={<ArrowLeft size={16} />} onClick={() => goBack()}>
-          返回
+          {t("commonBack")}
         </Button>
         <div className="mt-12">
-          <Empty description="Book不存在" />
+          <Empty description={t("bookNotFound")} />
         </div>
       </div>
     );
@@ -191,7 +209,7 @@ export default function BookDetailPage() {
     <div className="min-h-screen px-4 py-6 md:px-6">
       <div className="mb-6">
         <Button icon={<ArrowLeft size={16} />} onClick={() => goBack()}>
-          返回
+          {t("commonBack")}
         </Button>
       </div>
 
@@ -217,7 +235,7 @@ export default function BookDetailPage() {
             <h1 className="text-2xl font-bold leading-tight md:text-3xl">
               {bookDetail.title}
             </h1>
-            <FavoriteButton isFavorite={bookDetail.isFavorite} />
+            <FavoriteButton isFavorite={bookDetail.isFavorite} t={t} />
           </div>
 
           {bookDetail.originalTitle &&
@@ -232,19 +250,23 @@ export default function BookDetailPage() {
             {bookDetail.year && <Tag>{bookDetail.year}</Tag>}
             {bookDetail.serialStatus && (
               <Tag color={serialStatusColor(bookDetail.serialStatus)}>
-                {serialStatusLabel(bookDetail.serialStatus)}
+                {bookDetail.serialStatus === "completed"
+                  ? t("serialCompleted")
+                  : bookDetail.serialStatus === "ongoing"
+                    ? t("serialOngoing")
+                    : bookDetail.serialStatus}
               </Tag>
             )}
             {bookDetail.publisher && <Tag>{bookDetail.publisher}</Tag>}
             {bookDetail.sourceProvider && (
-              <Tag>来源: {bookDetail.sourceProvider}</Tag>
+              <Tag>{t("sourcePrefix", { source: bookDetail.sourceProvider })}</Tag>
             )}
             {bookDetail.scrapedAt ? (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-500">
-                ✨ 已刮削
+                ✨ {t("scraped")}
               </span>
             ) : (
-              <span className="text-xs text-orange-400">未刮削</span>
+              <span className="text-xs text-orange-400">{t("notScraped")}</span>
             )}
           </div>
 
@@ -252,19 +274,19 @@ export default function BookDetailPage() {
             {bookDetail.totalChapters > 0 && (
               <span className="flex items-center gap-1">
                 <BookOpen size={14} />
-                {bookDetail.totalChapters}章
+                {t("chapterCount", { count: bookDetail.totalChapters })}
               </span>
             )}
             {bookDetail.wordCount != null && bookDetail.wordCount > 0 && (
               <span className="flex items-center gap-1">
                 <FileText size={14} />
-                {formatWordCount(bookDetail.wordCount)}
+                {formatWordCount(bookDetail.wordCount, locale)}
               </span>
             )}
             {bookDetail.doubanRating != null && bookDetail.doubanRating > 0 && (
               <span className="flex items-center gap-1">
                 <Star size={14} className="text-yellow-500" />
-                豆瓣 {bookDetail.doubanRating.toFixed(1)}
+                {t("doubanRating", { rating: bookDetail.doubanRating.toFixed(1) })}
               </span>
             )}
             {bookDetail.bangumiRating != null &&
@@ -280,7 +302,7 @@ export default function BookDetailPage() {
             {firstChapterId && (
               <Button variant="primary" onClick={handleStartReading}>
                 <BookOpen size={16} className="mr-1.5" />
-                开始阅读
+                {t("startReading")}
               </Button>
             )}
           </div>
@@ -299,15 +321,15 @@ export default function BookDetailPage() {
 
       <section>
         <SectionTitle>
-          章节目录
+          {t("catalogTitle")}
           <span className="ml-2 text-sm font-normal text-fg-muted">
-            ({bookDetail.totalChapters}章)
+            ({t("chapterCount", { count: bookDetail.totalChapters })})
           </span>
         </SectionTitle>
 
         {bookDetail.volumes.length === 0 &&
         bookDetail.orphanChapters.length === 0 ? (
-          <Empty description="暂无章节" />
+          <Empty description={t("emptyChapters")} />
         ) : (
           <div className="space-y-3">
             {bookDetail.volumes.map((vol) => (
@@ -315,13 +337,15 @@ export default function BookDetailPage() {
                 key={vol.id}
                 volume={vol}
                 onOpenChapter={handleOpenChapter}
+                t={t}
+                locale={locale}
               />
             ))}
             {bookDetail.orphanChapters.length > 0 && (
               <div className="overflow-hidden rounded-lg border border-border-base">
                 {bookDetail.volumes.length > 0 && (
                   <div className="px-4 py-2.5 text-sm font-semibold text-fg-muted">
-                    其他章节
+                    {t("otherChapters")}
                   </div>
                 )}
                 {bookDetail.orphanChapters.map((ch) => (
@@ -329,6 +353,8 @@ export default function BookDetailPage() {
                     key={ch.id}
                     chapter={ch}
                     onClick={() => handleOpenChapter(ch.id)}
+                    t={t}
+                    locale={locale}
                   />
                 ))}
               </div>
@@ -341,7 +367,7 @@ export default function BookDetailPage() {
         <>
           <Divider className="my-8" />
           <section>
-            <SectionTitle>文件</SectionTitle>
+            <SectionTitle>{t("commonFiles")}</SectionTitle>
             <div className="space-y-2">
               {bookDetail.files.map((file) => (
                 <div

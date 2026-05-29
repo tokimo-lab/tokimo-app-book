@@ -1,17 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Dispose } from "@tokimo/sdk";
 import { defineApp, RuntimeProvider } from "@tokimo/sdk";
-import {
-  ConfigProvider,
-  ToastProvider,
-  enUS as uiEnUS,
-  zhCN as uiZhCN,
-} from "@tokimo/ui";
+import { ConfigProvider, ToastProvider } from "@tokimo/ui";
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { AppCtxProvider } from "./AppContext";
 import BookApp from "./components/BookApp";
 import BookMenuBar from "./components/BookMenuBar";
 import { BookDownloadProvider } from "./hooks/BookDownloadContext";
+import { getBookI18n } from "./i18n";
 import "./index.css";
 
 export default defineApp({
@@ -30,23 +27,25 @@ export default defineApp({
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
     });
-    const locale = ctx.locale.startsWith("zh") ? uiZhCN : uiEnUS;
+    const locale = getBookI18n(ctx.locale).uiLocale;
     const root: Root = createRoot(container);
 
     root.render(
       <StrictMode>
         <RuntimeProvider value={ctx}>
-          <QueryClientProvider client={queryClient}>
-            <ConfigProvider locale={locale}>
-              <ToastProvider>
-                <BookDownloadProvider>
-                  <BookMenuBar>
-                    <BookApp />
-                  </BookMenuBar>
-                </BookDownloadProvider>
-              </ToastProvider>
-            </ConfigProvider>
-          </QueryClientProvider>
+          <AppCtxProvider value={ctx}>
+            <QueryClientProvider client={queryClient}>
+              <ConfigProvider locale={locale}>
+                <ToastProvider>
+                  <BookDownloadProvider>
+                    <BookMenuBar>
+                      <BookApp />
+                    </BookMenuBar>
+                  </BookDownloadProvider>
+                </ToastProvider>
+              </ConfigProvider>
+            </QueryClientProvider>
+          </AppCtxProvider>
         </RuntimeProvider>
       </StrictMode>,
     );

@@ -11,6 +11,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 import { bookApi } from "../api";
 import { useBookDownload } from "../hooks/BookDownloadContext";
+import { useBookI18n } from "../i18n";
 import type { BookSearchResultOutput } from "../types";
 
 // ── SSE helpers ───────────────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ export default function BookDownloadModal({
   appName,
 }: BookDownloadModalProps) {
   const { startDownload } = useBookDownload();
+  const { t } = useBookI18n();
 
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<BookSearchResultOutput[]>([]);
@@ -289,7 +291,7 @@ export default function BookDownloadModal({
       title={
         <span className="flex items-center gap-2">
           <Download size={16} />
-          下载小说
+          {t("downloadTitle")}
         </span>
       }
       footer={null}
@@ -302,7 +304,7 @@ export default function BookDownloadModal({
             onClick={handleBackToResults}
             className="cursor-pointer flex items-center gap-1 text-xs text-[var(--accent)] hover:underline"
           >
-            ← 返回搜索结果
+            {t("downloadBackToResults")}
           </button>
 
           {loadingInfo ? (
@@ -314,26 +316,26 @@ export default function BookDownloadModal({
               <div className="space-y-2 text-sm">
                 <div className="flex gap-2">
                   <span className="w-16 shrink-0 text-[var(--text-muted)]">
-                    📖 书名
+                    {t("downloadBookName")}
                   </span>
                   <span className="font-medium">{bookInfo.bookName}</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="w-16 shrink-0 text-[var(--text-muted)]">
-                    ✍️ 作者
+                    {t("downloadAuthor")}
                   </span>
                   <span>{bookInfo.author || "—"}</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="w-16 shrink-0 text-[var(--text-muted)]">
-                    🌐 来源
+                    {t("downloadSource")}
                   </span>
                   <Tag className="!text-[10px]">{selectedSource.site}</Tag>
                 </div>
                 {bookInfo.summary && (
                   <div className="flex gap-2">
                     <span className="w-16 shrink-0 text-[var(--text-muted)]">
-                      📝 简介
+                      {t("downloadSummary")}
                     </span>
                     <span className="line-clamp-3 text-[var(--text-secondary)]">
                       {bookInfo.summary}
@@ -345,11 +347,11 @@ export default function BookDownloadModal({
                     📊 {bookInfo.serialStatus || "—"}
                   </span>
                   <span className="text-[var(--text-muted)]">
-                    章节: {bookInfo.totalChapters}
+                    {t("commonChapters")}: {bookInfo.totalChapters}
                   </span>
                   {bookInfo.wordCount && (
                     <span className="text-[var(--text-muted)]">
-                      字数: {bookInfo.wordCount}
+                      {t("commonWordCount")}: {bookInfo.wordCount}
                     </span>
                   )}
                 </div>
@@ -360,9 +362,9 @@ export default function BookDownloadModal({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                       <Globe size={14} />
-                      <span>下载源</span>
+                      <span>{t("downloadSources")}</span>
                       <Tag className="!text-[10px]">
-                        {selectedBook.sources.length} 个可用
+                        {t("downloadAvailableSources", { count: selectedBook.sources.length })}
                       </Tag>
                     </div>
                     <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border-base p-1">
@@ -408,13 +410,13 @@ export default function BookDownloadModal({
                 )}
                 <div className="flex items-center gap-3">
                   <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
-                    目标应用
+                    {t("downloadTargetApp")}
                   </span>
                   <span className="text-sm font-medium">{appName}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
-                    年份 (可选)
+                    {t("commonYearOptional")}
                   </span>
                   <input
                     className="h-9 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
@@ -430,16 +432,16 @@ export default function BookDownloadModal({
                   icon={<Download size={16} />}
                   onClick={handleDownload}
                 >
-                  开始下载
+                  {t("downloadStart")}
                 </Button>
                 <p className="text-center text-[10px] text-[var(--text-muted)]">
-                  下载将在后台进行，可在右上角「下载」按钮查看进度和日志
+                  {t("downloadBackgroundHint")}
                 </p>
               </div>
             </div>
           ) : (
             <div className="py-6 text-center text-sm text-red-500">
-              获取书籍信息失败，请重试
+              {t("downloadInfoFailed")}
             </div>
           )}
         </div>
@@ -450,7 +452,7 @@ export default function BookDownloadModal({
               <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
               <input
                 className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
-                placeholder="输入小说名称或作者..."
+                placeholder={t("downloadSearchPlaceholder")}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
@@ -474,7 +476,7 @@ export default function BookDownloadModal({
               loading={searching}
               onClick={handleSearch}
             >
-              搜索
+              {t("commonSearch")}
             </Button>
           </div>
 
@@ -482,8 +484,9 @@ export default function BookDownloadModal({
             <div className="flex items-center gap-2 text-xs text-fg-muted">
               <Spin size="small" />
               <span>
-                正在搜索 {providerCount} 个站点...
-                {rankedBooks.length > 0 && ` 已找到 ${rankedBooks.length} 本书`}
+                {t("downloadSearching", { count: providerCount })}
+                {rankedBooks.length > 0 &&
+                  t("downloadFound", { count: rankedBooks.length })}
               </span>
             </div>
           )}
@@ -492,11 +495,11 @@ export default function BookDownloadModal({
             <div className="rounded-lg border-2 border-[var(--accent)]/30 bg-[var(--accent)]/[0.04] p-3">
               <div className="mb-2 flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-                  最佳匹配
+                  {t("downloadBestMatch")}
                 </span>
                 {rankedBooks[0].sources.length > 1 && (
                   <Tag className="!text-[10px]">
-                    {rankedBooks[0].sources.length} 个源
+                    {t("downloadSourceCount", { count: rankedBooks[0].sources.length })}
                   </Tag>
                 )}
               </div>
@@ -517,7 +520,7 @@ export default function BookDownloadModal({
                       {rankedBooks[0].best.author || "—"}
                     </span>
                     {rankedBooks[0].best.wordCount && (
-                      <span>字数: {rankedBooks[0].best.wordCount}</span>
+                      <span>{t("commonWordCount")}: {rankedBooks[0].best.wordCount}</span>
                     )}
                   </div>
                 </div>
@@ -527,7 +530,7 @@ export default function BookDownloadModal({
                   icon={<Download size={14} />}
                   onClick={() => handleViewDetails(rankedBooks[0])}
                 >
-                  下载
+                  {t("commonDownload")}
                 </Button>
               </div>
             </div>
@@ -543,8 +546,8 @@ export default function BookDownloadModal({
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--text-secondary)]">
                     {(rankedBooks[0]?.score ?? 0) >= 80
-                      ? "其他结果"
-                      : "搜索结果"}
+                      ? t("downloadOtherResults")
+                      : t("downloadSearchResults")}
                   </span>
                   <Tag>{others.length}</Tag>
                 </div>
@@ -577,11 +580,11 @@ export default function BookDownloadModal({
                           </span>
                           {book.best.latestChapter && (
                             <span className="max-w-[200px] truncate">
-                              最新: {book.best.latestChapter}
+                              {t("downloadLatest", { chapter: book.best.latestChapter })}
                             </span>
                           )}
                           {book.best.wordCount && (
-                            <span>字数: {book.best.wordCount}</span>
+                            <span>{t("commonWordCount")}: {book.best.wordCount}</span>
                           )}
                         </div>
                       </div>
@@ -591,7 +594,7 @@ export default function BookDownloadModal({
                         icon={<ChevronRight size={14} />}
                         onClick={() => handleViewDetails(book)}
                       >
-                        查看详情
+                        {t("downloadViewDetails")}
                       </Button>
                     </div>
                   ))}
@@ -601,7 +604,7 @@ export default function BookDownloadModal({
               !searching && rankedBooks.length === 0 && (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="输入关键词搜索小说"
+                  description={t("emptySearchHint")}
                 />
               )
             );
