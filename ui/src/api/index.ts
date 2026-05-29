@@ -278,6 +278,25 @@ export const bookApi = {
   },
 };
 
+export interface BrowseEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+}
+
+export interface BrowseDirectoryResponse {
+  currentPath: string;
+  parentPath: string | null;
+  entries: BrowseEntry[];
+}
+
+export interface SourceStatEntry {
+  path: string;
+  size: number | null;
+  modifiedAt: string | null;
+  mode: string | null;
+}
+
 export const vfsApi = {
   list: {
     useQuery: () =>
@@ -287,6 +306,28 @@ export const vfsApi = {
       }),
   },
 };
+
+export function vfsBrowse(
+  fileSystemId: string | undefined,
+  path: string,
+): Promise<BrowseDirectoryResponse> {
+  const base = fileSystemId
+    ? `/api/vfs/${encodeURIComponent(fileSystemId)}/browse`
+    : "/api/vfs/local/browse";
+  return apiFetch<BrowseDirectoryResponse>(
+    `${base}?path=${encodeURIComponent(path)}`,
+  );
+}
+
+export function vfsStat(
+  paths: string[],
+  fileSystemId: string | undefined,
+): Promise<SourceStatEntry[]> {
+  const url = fileSystemId
+    ? `/api/vfs/${encodeURIComponent(fileSystemId)}/stat`
+    : "/api/vfs/local/stat";
+  return apiPost<SourceStatEntry[]>(url, { paths });
+}
 
 export const api = {
   book: bookApi,

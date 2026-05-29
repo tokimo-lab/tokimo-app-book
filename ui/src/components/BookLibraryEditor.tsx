@@ -3,6 +3,7 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
+import type { ShellApi } from "@tokimo/sdk";
 import {
   type AvatarData,
   AvatarPicker,
@@ -21,6 +22,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bookApi, vfsApi } from "../api";
+import { useVfsBrowse } from "../hooks/useVfsBrowse";
 import type { BookContainerOutput } from "../types";
 
 const BOOK_TYPES = [
@@ -31,6 +33,7 @@ const BOOK_TYPES = [
 
 interface BookLibraryEditorProps {
   bookId?: string;
+  shell: ShellApi;
   onSaved?: (savedId: string) => void;
   onDeleted?: () => void;
   onCancel?: () => void;
@@ -38,6 +41,7 @@ interface BookLibraryEditorProps {
 
 export default function BookLibraryEditor({
   bookId,
+  shell,
   onSaved,
   onDeleted,
   onCancel,
@@ -45,6 +49,7 @@ export default function BookLibraryEditor({
   const toast = useToast();
   const qc = useQueryClient();
   const [form] = Form.useForm();
+  const onBrowse = useVfsBrowse(shell);
 
   const { data: libraries = [] } = bookApi.list.useQuery();
   const { data: vfsSources = [] } = vfsApi.list.useQuery();
@@ -200,6 +205,7 @@ export default function BookLibraryEditor({
               sources={vfsSources}
               form={form}
               initialSources={book?.sources}
+              onBrowse={onBrowse}
             />
           </div>
         </ScrollArea>

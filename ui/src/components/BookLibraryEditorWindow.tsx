@@ -26,6 +26,7 @@ function BookLibraryEditorContent({
   return (
     <BookLibraryEditor
       bookId={bookId}
+      shell={bridge.ctx.shell}
       onSaved={(savedId) => {
         bridge.onSaved?.(savedId);
         win.close();
