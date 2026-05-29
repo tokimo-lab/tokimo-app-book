@@ -25,7 +25,7 @@ export default defineApp({
   },
   mount(container, ctx): Dispose {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+      defaultOptions: { queries: { retry: 1 } },
     });
     const locale = getBookI18n(ctx.locale).uiLocale;
     const root: Root = createRoot(container);
