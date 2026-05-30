@@ -9,8 +9,8 @@ import { AppSetupGuide, Spin } from "@tokimo/ui";
 import { FileText, Import, Library, Plus } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { bookApi } from "../api";
-import { useBookI18n } from "../i18n";
 import { useLibraryItemProgress } from "../hooks/useLibraryItemProgress";
+import { useBookI18n } from "../i18n";
 import { registerBridge } from "../modal-bridge";
 import BookAppPage from "../pages/BookAppPage";
 import BookDetailPage from "../pages/BookDetailPage";
@@ -23,7 +23,7 @@ import BookSidebar from "./BookSidebar";
 
 export default function BookApp() {
   const { route, replace } = useWindowNav();
-  const windowId = useWindowId();
+  const _windowId = useWindowId();
   const { openModalWindow } = useWindowActions();
   const ctx = useRuntimeCtx();
   const { t } = useBookI18n();
@@ -82,16 +82,7 @@ export default function BookApp() {
         metadata,
       });
     },
-    [
-      ctx,
-      openModalWindow,
-      windowId,
-      activeLibraryId,
-      libraries,
-      replace,
-      qc,
-      t,
-    ],
+    [ctx, openModalWindow, activeLibraryId, libraries, replace, qc, t],
   );
 
   const handleAddLibrary = useCallback(() => {

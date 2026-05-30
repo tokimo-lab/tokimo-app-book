@@ -11,8 +11,8 @@ import { Checkbox, Modal } from "@tokimo/ui";
 import { Download, FolderSync, RefreshCw } from "lucide-react";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { bookApi } from "../api";
-import { useBookI18n } from "../i18n";
 import { useBookDownload } from "../hooks/BookDownloadContext";
+import { useBookI18n } from "../i18n";
 import { registerBridge } from "../modal-bridge";
 
 export default function BookMenuBar({ children }: { children: ReactNode }) {
