@@ -59,7 +59,9 @@ function VolumeSection({
             {volume.title ? ` · ${volume.title}` : ""}
           </span>
           <span className="ml-3 text-xs text-fg-muted">
-            {t("chapterCount", { count: volume.chapterCount ?? volume.chapters.length })}
+            {t("chapterCount", {
+              count: volume.chapterCount ?? volume.chapters.length,
+            })}
             {volume.wordCount != null && volume.wordCount > 0 && (
               <> · {formatWordCount(volume.wordCount, locale)}</>
             )}
@@ -259,7 +261,9 @@ export default function BookDetailPage() {
             )}
             {bookDetail.publisher && <Tag>{bookDetail.publisher}</Tag>}
             {bookDetail.sourceProvider && (
-              <Tag>{t("sourcePrefix", { source: bookDetail.sourceProvider })}</Tag>
+              <Tag>
+                {t("sourcePrefix", { source: bookDetail.sourceProvider })}
+              </Tag>
             )}
             {bookDetail.scrapedAt ? (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-500">
@@ -286,7 +290,9 @@ export default function BookDetailPage() {
             {bookDetail.doubanRating != null && bookDetail.doubanRating > 0 && (
               <span className="flex items-center gap-1">
                 <Star size={14} className="text-yellow-500" />
-                {t("doubanRating", { rating: bookDetail.doubanRating.toFixed(1) })}
+                {t("doubanRating", {
+                  rating: bookDetail.doubanRating.toFixed(1),
+                })}
               </span>
             )}
             {bookDetail.bangumiRating != null &&

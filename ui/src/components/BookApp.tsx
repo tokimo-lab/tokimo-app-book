@@ -82,7 +82,16 @@ export default function BookApp() {
         metadata,
       });
     },
-    [ctx, openModalWindow, windowId, activeLibraryId, libraries, replace, qc, t],
+    [
+      ctx,
+      openModalWindow,
+      windowId,
+      activeLibraryId,
+      libraries,
+      replace,
+      qc,
+      t,
+    ],
   );
 
   const handleAddLibrary = useCallback(() => {

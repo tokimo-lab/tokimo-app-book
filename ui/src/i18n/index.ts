@@ -55,7 +55,8 @@ export const zhCN = {
   editorDescriptionPlaceholder: "可选描述",
   editorPathConfig: "路径配置",
   deleteLibraryTitle: "⚠️ 删除小说库",
-  deleteLibraryMessage: "此操作将永久删除 {name} 及其所有数据，{irreversible}。",
+  deleteLibraryMessage:
+    "此操作将永久删除 {name} 及其所有数据，{irreversible}。",
   irreversible: "不可恢复",
   confirmDelete: "确认删除",
   selectDirectory: "选择目录",
@@ -75,7 +76,8 @@ export const zhCN = {
   syncModalTitle: "同步小说库",
   syncModalOk: "开始同步",
   syncClearData: "清空数据重新同步",
-  syncClearDataHint: "勾选后将删除应用中所有已有条目并重新完整同步，适合修复数据异常。",
+  syncClearDataHint:
+    "勾选后将删除应用中所有已有条目并重新完整同步，适合修复数据异常。",
   sortRecentlyAdded: "最近添加",
   sortTitleAsc: "标题 A-Z",
   sortTitleDesc: "标题 Z-A",
@@ -110,7 +112,8 @@ export const zhCN = {
   downloadAvailableSources: "{count} 个可用",
   downloadTargetApp: "目标应用",
   downloadStart: "开始下载",
-  downloadBackgroundHint: "下载将在后台进行，可在右上角「下载」按钮查看进度和日志",
+  downloadBackgroundHint:
+    "下载将在后台进行，可在右上角「下载」按钮查看进度和日志",
   downloadInfoFailed: "获取书籍信息失败，请重试",
   downloadSearchPlaceholder: "输入小说名称或作者...",
   downloadSearching: "正在搜索 {count} 个站点...",
@@ -125,7 +128,8 @@ export const zhCN = {
   downloadLogBookInfo: "获取书籍信息: {total} 章",
   downloadLogSearchingAlternatives: "正在搜索其他源以补全 VIP 章节…",
   downloadLogAltSourcesReady: "已找到其他源，可覆盖 {count} 个章节",
-  downloadLogCompleted: "下载完成: 成功 {downloaded} 章，失败 {failed} 章{vip}{rescued}",
+  downloadLogCompleted:
+    "下载完成: 成功 {downloaded} 章，失败 {failed} 章{vip}{rescued}",
   downloadLogVipSkipped: "，跳过 VIP {count} 章",
   downloadLogRescued: "，救援 {count} 章",
   downloadLogError: "错误: {message}",
@@ -160,7 +164,8 @@ export const enUS = {
   commonWordCount: "Word Count",
   commonYearOptional: "Year (optional)",
   setupTitle: "Start using Tokimo Book",
-  setupDescription: "Manage your digital book library, download novels, and track reading progress.",
+  setupDescription:
+    "Manage your digital book library, download novels, and track reading progress.",
   setupFeatureDownload: "Download novels from multiple sources",
   setupFeatureProgress: "Sync reading progress across devices",
   setupFeatureLibrary: "Manage your book library in one place",
@@ -190,7 +195,8 @@ export const enUS = {
   editorDescriptionPlaceholder: "Optional description",
   editorPathConfig: "Path Configuration",
   deleteLibraryTitle: "⚠️ Delete Book Library",
-  deleteLibraryMessage: "This will permanently delete {name} and all of its data. {irreversible}.",
+  deleteLibraryMessage:
+    "This will permanently delete {name} and all of its data. {irreversible}.",
   irreversible: "This cannot be undone",
   confirmDelete: "Confirm Delete",
   selectDirectory: "Select Directory",
@@ -210,7 +216,8 @@ export const enUS = {
   syncModalTitle: "Sync Book Library",
   syncModalOk: "Start Sync",
   syncClearData: "Clear data and resync",
-  syncClearDataHint: "Deletes all existing app items and performs a full resync. Use this to repair inconsistent data.",
+  syncClearDataHint:
+    "Deletes all existing app items and performs a full resync. Use this to repair inconsistent data.",
   sortRecentlyAdded: "Recently Added",
   sortTitleAsc: "Title A-Z",
   sortTitleDesc: "Title Z-A",
@@ -245,7 +252,8 @@ export const enUS = {
   downloadAvailableSources: "{count} available",
   downloadTargetApp: "Target App",
   downloadStart: "Start Download",
-  downloadBackgroundHint: "The download will run in the background. Use the Download button in the upper-right to view progress and logs.",
+  downloadBackgroundHint:
+    "The download will run in the background. Use the Download button in the upper-right to view progress and logs.",
   downloadInfoFailed: "Failed to fetch book details. Please try again.",
   downloadSearchPlaceholder: "Enter a novel title or author...",
   downloadSearching: "Searching {count} sites...",
@@ -258,9 +266,12 @@ export const enUS = {
   downloadViewDetails: "View Details",
   downloadLogStart: "Starting download of “{title}” ({provider})",
   downloadLogBookInfo: "Fetched book info: {total} chapters",
-  downloadLogSearchingAlternatives: "Searching other sources to fill VIP chapters…",
-  downloadLogAltSourcesReady: "Found other sources that can cover {count} chapters",
-  downloadLogCompleted: "Download complete: {downloaded} succeeded, {failed} failed{vip}{rescued}",
+  downloadLogSearchingAlternatives:
+    "Searching other sources to fill VIP chapters…",
+  downloadLogAltSourcesReady:
+    "Found other sources that can cover {count} chapters",
+  downloadLogCompleted:
+    "Download complete: {downloaded} succeeded, {failed} failed{vip}{rescued}",
   downloadLogVipSkipped: ", {count} VIP chapters skipped",
   downloadLogRescued: ", {count} rescued",
   downloadLogError: "Error: {message}",

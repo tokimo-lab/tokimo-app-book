@@ -186,8 +186,15 @@ export default function BookLibraryEditor({
               <Input placeholder={t("editorNamePlaceholder")} size="large" />
             </Form.Item>
 
-            <Form.Item name="description" label={t("editorDescription")} className="!mb-0">
-              <Input.TextArea placeholder={t("editorDescriptionPlaceholder")} rows={3} />
+            <Form.Item
+              name="description"
+              label={t("editorDescription")}
+              className="!mb-0"
+            >
+              <Input.TextArea
+                placeholder={t("editorDescriptionPlaceholder")}
+                rows={3}
+              />
             </Form.Item>
           </div>
 
@@ -263,10 +270,18 @@ function DeleteConfirmModal({
   t: BookTranslator;
 }) {
   return (
-    <Modal title={t("deleteLibraryTitle")} open={open} onCancel={onCancel} footer={null}>
+    <Modal
+      title={t("deleteLibraryTitle")}
+      open={open}
+      onCancel={onCancel}
+      footer={null}
+    >
       <div className="space-y-4 pt-1">
         <p className="text-sm text-fg-secondary">
-          {t("deleteLibraryMessage", { name: book.name, irreversible: t("irreversible") })}
+          {t("deleteLibraryMessage", {
+            name: book.name,
+            irreversible: t("irreversible"),
+          })}
         </p>
         <Input
           value={deleteInput}

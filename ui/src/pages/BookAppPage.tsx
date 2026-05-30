@@ -95,7 +95,10 @@ function BookCard({
         {item.title}
       </p>
       <p className="truncate text-xs text-fg-muted">
-        {[item.author, item.wordCount ? formatWordCount(item.wordCount, locale) : null]
+        {[
+          item.author,
+          item.wordCount ? formatWordCount(item.wordCount, locale) : null,
+        ]
           .filter(Boolean)
           .join(" · ")}
       </p>
@@ -192,7 +195,10 @@ export default function BookAppPage({
 
   const handleItemClick = useCallback(
     (item: BookOutput) => {
-      navigate(`/books/${item.id}`, `${t("appName")} · ${item.title ?? t("appFallbackBook")}`);
+      navigate(
+        `/books/${item.id}`,
+        `${t("appName")} · ${item.title ?? t("appFallbackBook")}`,
+      );
     },
     [navigate, t],
   );
@@ -214,11 +220,15 @@ export default function BookAppPage({
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2">
-            <h5 className="text-base font-semibold text-fg-primary">{t("commonAll")}</h5>
+            <h5 className="text-base font-semibold text-fg-primary">
+              {t("commonAll")}
+            </h5>
             <Tag>{total}</Tag>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-0.5 text-xs text-fg-muted">{t("commonSort")}</span>
+            <span className="mr-0.5 text-xs text-fg-muted">
+              {t("commonSort")}
+            </span>
             {SORT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -270,7 +280,9 @@ export default function BookAppPage({
               <div className="mt-2 flex justify-center py-3">
                 {booksQuery.isFetching && <Spin />}
                 {!hasMore && total > 0 && !booksQuery.isFetching && (
-                  <p className="text-xs text-fg-muted">{t("loadedAllBooks", { total })}</p>
+                  <p className="text-xs text-fg-muted">
+                    {t("loadedAllBooks", { total })}
+                  </p>
                 )}
               </div>
             </>

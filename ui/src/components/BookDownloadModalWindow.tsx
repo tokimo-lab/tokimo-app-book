@@ -1,6 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RuntimeProvider, type ShellWindowHandle } from "@tokimo/sdk";
-import { Button, Empty, Spin, Tag, ConfigProvider, ToastProvider } from "@tokimo/ui";
+import {
+  Button,
+  Empty,
+  Spin,
+  Tag,
+  ConfigProvider,
+  ToastProvider,
+} from "@tokimo/ui";
 import {
   BookOpen,
   ChevronRight,
@@ -361,7 +368,9 @@ function BookDownloadModalContent({
                       <Globe size={14} />
                       <span>{t("downloadSources")}</span>
                       <Tag className="!text-[10px]">
-                        {t("downloadAvailableSources", { count: selectedBook.sources.length })}
+                        {t("downloadAvailableSources", {
+                          count: selectedBook.sources.length,
+                        })}
                       </Tag>
                     </div>
                     <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-md border border-border-base p-1">
@@ -498,7 +507,9 @@ function BookDownloadModalContent({
                 </span>
                 {rankedBooks[0].sources.length > 1 && (
                   <Tag className="!text-[10px]">
-                    {t("downloadSourceCount", { count: rankedBooks[0].sources.length })}
+                    {t("downloadSourceCount", {
+                      count: rankedBooks[0].sources.length,
+                    })}
                   </Tag>
                 )}
               </div>
@@ -519,7 +530,9 @@ function BookDownloadModalContent({
                       {rankedBooks[0].best.author || "—"}
                     </span>
                     {rankedBooks[0].best.wordCount && (
-                      <span>{t("commonWordCount")}: {rankedBooks[0].best.wordCount}</span>
+                      <span>
+                        {t("commonWordCount")}: {rankedBooks[0].best.wordCount}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -579,11 +592,15 @@ function BookDownloadModalContent({
                           </span>
                           {book.best.latestChapter && (
                             <span className="max-w-[200px] truncate">
-                              {t("downloadLatest", { chapter: book.best.latestChapter })}
+                              {t("downloadLatest", {
+                                chapter: book.best.latestChapter,
+                              })}
                             </span>
                           )}
                           {book.best.wordCount && (
-                            <span>{t("commonWordCount")}: {book.best.wordCount}</span>
+                            <span>
+                              {t("commonWordCount")}: {book.best.wordCount}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -614,7 +631,11 @@ function BookDownloadModalContent({
   );
 }
 
-export default function BookDownloadModalWindow({ win }: { win: ShellWindowHandle }) {
+export default function BookDownloadModalWindow({
+  win,
+}: {
+  win: ShellWindowHandle;
+}) {
   const bridgeId =
     typeof win.metadata?.bridgeId === "string"
       ? win.metadata.bridgeId

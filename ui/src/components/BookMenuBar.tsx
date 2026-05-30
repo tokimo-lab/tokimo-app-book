@@ -41,7 +41,6 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
     },
   });
 
-
   const openDownloadWindow = useCallback(() => {
     if (!bookId) return;
     const bridgeId = registerBridge({
@@ -103,7 +102,10 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
         appId: bookId,
         searchType: "book" as const,
         onSelect: (item) =>
-          navigate(`/books/${item.id}`, `${t("appName")} · ${item.title ?? t("appFallbackBook")}`),
+          navigate(
+            `/books/${item.id}`,
+            `${t("appName")} · ${item.title ?? t("appFallbackBook")}`,
+          ),
       },
     };
   }, [bookId, qc, syncMut.isPending, navigate, openDownloadWindow, t]);
