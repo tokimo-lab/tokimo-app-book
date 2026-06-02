@@ -1,5 +1,6 @@
 use sea_orm::{
     ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, prelude::*,
+    sea_query::Expr,
 };
 use uuid::Uuid;
 
@@ -91,34 +92,35 @@ impl ItemsRepo {
         id: Uuid,
         params: UpdateItemParams,
     ) -> Result<items::Model, AppError> {
-        let model = Items::find_by_id(id)
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound(format!("item {id} not found")))?;
-        let mut am: ItemsActive = model.into();
+        let mut stmt = Items::update_many()
+            .filter(items::Column::Id.eq(id))
+            .col_expr(items::Column::UpdatedAt, Expr::value(chrono::Utc::now().fixed_offset()));
         if let Some(v) = params.title {
-            am.title = Set(v);
+            stmt = stmt.col_expr(items::Column::Title, Expr::value(v));
         }
         if let Some(v) = params.author {
-            am.author = Set(Some(v));
+            stmt = stmt.col_expr(items::Column::Author, Expr::value(Some(v)));
         }
         if let Some(v) = params.file_path {
-            am.file_path = Set(v);
+            stmt = stmt.col_expr(items::Column::FilePath, Expr::value(v));
         }
         if let Some(v) = params.format {
-            am.format = Set(v);
+            stmt = stmt.col_expr(items::Column::Format, Expr::value(v));
         }
         if let Some(v) = params.size_bytes {
-            am.size_bytes = Set(Some(v));
+            stmt = stmt.col_expr(items::Column::SizeBytes, Expr::value(Some(v)));
         }
         if let Some(v) = params.content {
-            am.content = Set(Some(v));
+            stmt = stmt.col_expr(items::Column::Content, Expr::value(Some(v)));
         }
         if let Some(v) = params.metadata {
-            am.metadata = Set(v);
+            stmt = stmt.col_expr(items::Column::Metadata, Expr::value(v));
         }
-        am.updated_at = Set(chrono::Utc::now().into());
-        Ok(am.update(db).await?)
+        let mut results = stmt.exec_with_returning(db).await?;
+        results
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::NotFound(format!("item {id} not found")))
     }
 
     pub async fn get_by_file_path<C: ConnectionTrait>(
@@ -137,16 +139,26 @@ impl ItemsRepo {
         db: &C,
         params: CreateItemParams,
     ) -> Result<items::Model, AppError> {
-        if let Some(existing) = Self::get_by_file_path(db, params.container_id, &params.file_path).await? {
-            let mut am: ItemsActive = existing.into();
-            am.title = Set(params.title);
-            am.author = Set(params.author);
-            am.format = Set(params.format);
-            am.size_bytes = Set(params.size_bytes);
-            am.content = Set(params.content);
-            am.metadata = Set(params.metadata);
-            am.updated_at = Set(chrono::Utc::now().into());
-            return Ok(am.update(db).await?);
+        if Self::get_by_file_path(db, params.container_id, &params.file_path)
+            .await?
+            .is_some()
+        {
+            let mut results = Items::update_many()
+                .filter(items::Column::ContainerId.eq(params.container_id))
+                .filter(items::Column::FilePath.eq(&params.file_path))
+                .col_expr(items::Column::Title, Expr::value(params.title))
+                .col_expr(items::Column::Author, Expr::value(params.author))
+                .col_expr(items::Column::Format, Expr::value(params.format))
+                .col_expr(items::Column::SizeBytes, Expr::value(params.size_bytes))
+                .col_expr(items::Column::Content, Expr::value(params.content))
+                .col_expr(items::Column::Metadata, Expr::value(params.metadata))
+                .col_expr(items::Column::UpdatedAt, Expr::value(chrono::Utc::now().fixed_offset()))
+                .exec_with_returning(db)
+                .await?;
+            return results
+                .into_iter()
+                .next()
+                .ok_or_else(|| AppError::NotFound("item not found".into()));
         }
         Self::create(db, params).await
     }

@@ -1,6 +1,6 @@
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set,
-    TransactionTrait,
+    ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, Set,
+    TransactionTrait, sea_query::Expr,
 };
 use uuid::Uuid;
 
@@ -70,27 +70,26 @@ impl ContainersRepo {
         source_id: Option<Uuid>,
         root_path: Option<String>,
     ) -> Result<Option<containers::Model>, AppError> {
-        if Self::get_by_id(db, id).await?.is_none() {
-            return Ok(None);
-        }
-        let mut am = ContainersActive {
-            id: Set(id),
-            updated_at: Set(chrono::Utc::now().into()),
-            ..Default::default()
-        };
+        let mut stmt = Containers::update_many()
+            .filter(containers::Column::Id.eq(id))
+            .col_expr(
+                containers::Column::UpdatedAt,
+                Expr::value(chrono::Utc::now().fixed_offset()),
+            );
         if let Some(n) = name {
-            am.name = Set(n);
+            stmt = stmt.col_expr(containers::Column::Name, Expr::value(n));
         }
         if let Some(k) = kind {
-            am.kind = Set(k);
+            stmt = stmt.col_expr(containers::Column::Kind, Expr::value(k));
         }
         if let Some(sid) = source_id {
-            am.source_id = Set(Some(sid));
+            stmt = stmt.col_expr(containers::Column::SourceId, Expr::value(Some(sid)));
         }
         if let Some(rp) = root_path {
-            am.root_path = Set(rp);
+            stmt = stmt.col_expr(containers::Column::RootPath, Expr::value(rp));
         }
-        Ok(Some(am.update(db).await?))
+        let mut results = stmt.exec_with_returning(db).await?;
+        Ok(results.into_iter().next())
     }
 
     pub async fn reorder(db: &sea_orm::DatabaseConnection, ids: Vec<Uuid>) -> Result<(), AppError> {
