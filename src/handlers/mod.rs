@@ -147,8 +147,8 @@ fn item_to_output(item: &items::Model) -> BookItemOutput {
         author: item.author.clone(),
         cover_path: meta.get("coverPath").and_then(|v| v.as_str()).map(String::from),
         serial_status: meta.get("serialStatus").and_then(|v| v.as_str()).map(String::from),
-        chapter_count: meta.get("chapterCount").and_then(|v| v.as_i64()),
-        word_count: meta.get("wordCount").and_then(|v| v.as_i64()).or(item.size_bytes),
+        chapter_count: meta.get("chapterCount").and_then(serde_json::Value::as_i64),
+        word_count: meta.get("wordCount").and_then(serde_json::Value::as_i64).or(item.size_bytes),
         scraped_at: meta.get("scrapedAt").and_then(|v| v.as_str()).map(String::from),
         format: item.format.clone(),
         file_path: item.file_path.clone(),
@@ -379,7 +379,6 @@ pub async fn list_book_items(
             let cmp = match sort_field {
                 "title" => a.title.cmp(&b.title),
                 "author" => a.author.cmp(&b.author),
-                "addedAt" | "created_at" => a.created_at.cmp(&b.created_at),
                 "wordCount" => a.word_count.cmp(&b.word_count),
                 "year" | "scrapedAt" => a.scraped_at.cmp(&b.scraped_at),
                 _ => a.created_at.cmp(&b.created_at),
@@ -446,14 +445,14 @@ pub async fn get_book_detail(
 
     Ok(ok(BookDetailResponse {
         item: item_to_output(&item),
-        is_favorite: meta.get("isFavorite").and_then(|v| v.as_bool()).unwrap_or(false),
+        is_favorite: meta.get("isFavorite").and_then(serde_json::Value::as_bool).unwrap_or(false),
         original_title: meta.get("originalTitle").and_then(|v| v.as_str()).map(String::from),
         overview: meta.get("overview").and_then(|v| v.as_str()).map(String::from),
-        year: meta.get("year").and_then(|v| v.as_i64()).map(|v| v as i32),
+        year: meta.get("year").and_then(serde_json::Value::as_i64).map(|v| v as i32),
         publisher: meta.get("publisher").and_then(|v| v.as_str()).map(String::from),
         source_provider: meta.get("sourceProvider").and_then(|v| v.as_str()).map(String::from),
-        douban_rating: meta.get("doubanRating").and_then(|v| v.as_f64()),
-        bangumi_rating: meta.get("bangumiRating").and_then(|v| v.as_f64()),
+        douban_rating: meta.get("doubanRating").and_then(serde_json::Value::as_f64),
+        bangumi_rating: meta.get("bangumiRating").and_then(serde_json::Value::as_f64),
         volumes: meta.get("volumes").cloned().map(|v| v.as_array().cloned().unwrap_or_default()).unwrap_or_default(),
         orphan_chapters: chapter_infos,
         files: meta.get("files").cloned().map(|v| v.as_array().cloned().unwrap_or_default()).unwrap_or_default(),
@@ -498,7 +497,7 @@ pub async fn sync_book(
     Path(id): Path<Uuid>,
     body: Option<Json<SyncBookRequest>>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
-    let clear_data = body.map(|b| b.clear_data).unwrap_or(false);
+    let clear_data = body.is_some_and(|b| b.clear_data);
     let container = ContainersRepo::get_by_id(&ctx.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound(format!("container {id} not found")))?;

@@ -1,5 +1,5 @@
 use sea_orm::{
-    ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, prelude::*,
+    ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
     sea_query::Expr,
 };
 use uuid::Uuid;
@@ -116,7 +116,7 @@ impl ItemsRepo {
         if let Some(v) = params.metadata {
             stmt = stmt.col_expr(items::Column::Metadata, Expr::value(v));
         }
-        let mut results = stmt.exec_with_returning(db).await?;
+        let results = stmt.exec_with_returning(db).await?;
         results
             .into_iter()
             .next()
@@ -143,7 +143,7 @@ impl ItemsRepo {
             .await?
             .is_some()
         {
-            let mut results = Items::update_many()
+            let results = Items::update_many()
                 .filter(items::Column::ContainerId.eq(params.container_id))
                 .filter(items::Column::FilePath.eq(&params.file_path))
                 .col_expr(items::Column::Title, Expr::value(params.title))

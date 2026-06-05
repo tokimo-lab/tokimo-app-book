@@ -88,7 +88,7 @@ impl ContainersRepo {
         if let Some(rp) = root_path {
             stmt = stmt.col_expr(containers::Column::RootPath, Expr::value(rp));
         }
-        let mut results = stmt.exec_with_returning(db).await?;
+        let results = stmt.exec_with_returning(db).await?;
         Ok(results.into_iter().next())
     }
 
