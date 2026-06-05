@@ -27,9 +27,9 @@ axum              = { version = "0.8", features = ["json"] }
 sea-orm           = { version = "2.0.0-rc.38", default-features = false, features = ["sqlx-postgres", "runtime-tokio-rustls", "with-uuid", "with-chrono", "with-json", "macros"] }
 chrono            = { version = "0.4", features = ["serde"] }
 urlencoding       = "2"
-novel-downloader = { path = "../../packages/novel-downloader-rs" }
-bookfinder       = { path = "../../packages/bookfinder" }
-tokimo-vfs       = { path = "../../packages/tokimo-package-vfs/packages/fs" }
+novel-downloader = { git = "https://github.com/tokimo-lab/tokimo-package-novel-downloader.git", rev = "ac5f49c" }
+bookfinder       = { git = "https://github.com/tokimo-lab/tokimo-package-bookfinder.git", rev = "ea2c8bb" }
+tokimo-vfs       = { git = "https://github.com/tokimo-lab/tokimo-package-vfs.git", rev = "17e3c7a9" }
 futures-util     = "0.3"
 async-stream     = "0.3"
 regex            = "1"
@@ -69,4 +69,7 @@ many_single_char_names  = "allow"
 unnecessary_literal_bound = "allow"
 doc_markdown            = "allow"
 ref_option              = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap      = "allow"
+too_many_lines          = "allow"
 
