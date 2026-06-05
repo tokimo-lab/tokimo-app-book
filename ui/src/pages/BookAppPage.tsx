@@ -65,7 +65,7 @@ function BookCard({
       badges={
         <>
           {item.serialStatus && (
-            <span className="absolute top-2 right-0 inline-flex items-center rounded-l-md border border-r-0 border-white/12 bg-[var(--sidebar-bg)] px-2 py-0.5 text-[10px] font-medium backdrop-blur-md">
+            <span className="absolute top-2 right-0 inline-flex items-center rounded-l-md border border-r-0 border-white/12 bg-[var(--color-surface-sidebar)] px-2 py-0.5 text-[10px] font-medium backdrop-blur-md">
               {item.serialStatus === "completed" ? (
                 <span className="text-emerald-500">{t("serialCompleted")}</span>
               ) : (

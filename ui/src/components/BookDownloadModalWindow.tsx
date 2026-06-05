@@ -306,7 +306,7 @@ function BookDownloadModalContent({
           <button
             type="button"
             onClick={handleBackToResults}
-            className="cursor-pointer flex items-center gap-1 text-xs text-[var(--accent)] hover:underline"
+            className="cursor-pointer flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline"
           >
             {t("downloadBackToResults")}
           </button>
@@ -319,42 +319,42 @@ function BookDownloadModalContent({
             <div className="space-y-4">
               <div className="space-y-2 text-sm">
                 <div className="flex gap-2">
-                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                  <span className="w-16 shrink-0 text-[var(--color-fg-muted)]">
                     {t("downloadBookName")}
                   </span>
                   <span className="font-medium">{bookInfo.bookName}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                  <span className="w-16 shrink-0 text-[var(--color-fg-muted)]">
                     {t("downloadAuthor")}
                   </span>
                   <span>{bookInfo.author || "—"}</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                  <span className="w-16 shrink-0 text-[var(--color-fg-muted)]">
                     {t("downloadSource")}
                   </span>
                   <Tag className="!text-[10px]">{selectedSource.site}</Tag>
                 </div>
                 {bookInfo.summary && (
                   <div className="flex gap-2">
-                    <span className="w-16 shrink-0 text-[var(--text-muted)]">
+                    <span className="w-16 shrink-0 text-[var(--color-fg-muted)]">
                       {t("downloadSummary")}
                     </span>
-                    <span className="line-clamp-3 text-[var(--text-secondary)]">
+                    <span className="line-clamp-3 text-[var(--color-fg-secondary)]">
                       {bookInfo.summary}
                     </span>
                   </div>
                 )}
                 <div className="flex flex-wrap gap-4">
-                  <span className="text-[var(--text-muted)]">
+                  <span className="text-[var(--color-fg-muted)]">
                     📊 {bookInfo.serialStatus || "—"}
                   </span>
-                  <span className="text-[var(--text-muted)]">
+                  <span className="text-[var(--color-fg-muted)]">
                     {t("commonChapters")}: {bookInfo.totalChapters}
                   </span>
                   {bookInfo.wordCount && (
-                    <span className="text-[var(--text-muted)]">
+                    <span className="text-[var(--color-fg-muted)]">
                       {t("commonWordCount")}: {bookInfo.wordCount}
                     </span>
                   )}
@@ -364,7 +364,7 @@ function BookDownloadModalContent({
               <div className="space-y-3 border-t border-border-base pt-2">
                 {selectedBook.sources.length > 1 && (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                    <div className="flex items-center gap-2 text-sm text-[var(--color-fg-muted)]">
                       <Globe size={14} />
                       <span>{t("downloadSources")}</span>
                       <Tag className="!text-[10px]">
@@ -387,24 +387,24 @@ function BookDownloadModalContent({
                             }}
                             className={`cursor-pointer flex w-full items-center justify-between rounded px-3 py-2 text-left text-xs transition-colors ${
                               isActive
-                                ? "bg-[var(--accent)]/10 text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
+                                ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/30"
                                 : "hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
                             }`}
                           >
                             <div className="flex min-w-0 items-center gap-2">
                               <Tag
-                                className={`!text-[10px] shrink-0 ${isActive ? "!bg-[var(--accent)]/20 !text-[var(--accent)]" : ""}`}
+                                className={`!text-[10px] shrink-0 ${isActive ? "!bg-[var(--color-accent)]/20 !text-[var(--color-accent)]" : ""}`}
                               >
                                 {source.site}
                               </Tag>
                               {source.latestChapter && (
-                                <span className="truncate text-[var(--text-muted)]">
+                                <span className="truncate text-[var(--color-fg-muted)]">
                                   {source.latestChapter}
                                 </span>
                               )}
                             </div>
                             {source.wordCount && (
-                              <span className="ml-2 shrink-0 text-[var(--text-muted)]">
+                              <span className="ml-2 shrink-0 text-[var(--color-fg-muted)]">
                                 {source.wordCount}
                               </span>
                             )}
@@ -415,17 +415,17 @@ function BookDownloadModalContent({
                   </div>
                 )}
                 <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
+                  <span className="w-24 shrink-0 text-sm text-[var(--color-fg-muted)]">
                     {t("downloadTargetApp")}
                   </span>
                   <span className="text-sm font-medium">{appName}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm text-[var(--text-muted)]">
+                  <span className="w-24 shrink-0 text-sm text-[var(--color-fg-muted)]">
                     {t("commonYearOptional")}
                   </span>
                   <input
-                    className="h-10 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
+                    className="h-10 flex-1 rounded-md border border-black/[0.08] bg-white/70 px-3 text-sm outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] dark:border-white/[0.1] dark:bg-white/[0.03]"
                     placeholder="2005"
                     value={yearInput}
                     onChange={(e) => setYearInput(e.target.value)}
@@ -441,7 +441,7 @@ function BookDownloadModalContent({
                 >
                   {t("downloadStart")}
                 </Button>
-                <p className="text-center text-[10px] text-[var(--text-muted)]">
+                <p className="text-center text-[10px] text-[var(--color-fg-muted)]">
                   {t("downloadBackgroundHint")}
                 </p>
               </div>
@@ -455,10 +455,10 @@ function BookDownloadModalContent({
       ) : (
         <div className="space-y-4">
           <div className="flex gap-2">
-            <div className="flex h-10 flex-1 items-center gap-2 rounded-md border border-black/[0.08] bg-white/70 px-3 transition-colors focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)] dark:border-white/[0.1] dark:bg-white/[0.03]">
-              <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
+            <div className="flex h-10 flex-1 items-center gap-2 rounded-md border border-black/[0.08] bg-white/70 px-3 transition-colors focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)] dark:border-white/[0.1] dark:bg-white/[0.03]">
+              <Search size={16} className="shrink-0 text-[var(--color-fg-muted)]" />
               <input
-                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
+                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--color-fg-muted)]"
                 placeholder={t("downloadSearchPlaceholder")}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
@@ -471,7 +471,7 @@ function BookDownloadModalContent({
                 <button
                   type="button"
                   onClick={() => setKeyword("")}
-                  className="cursor-pointer shrink-0 text-[var(--text-muted)] hover:text-fg-secondary"
+                  className="cursor-pointer shrink-0 text-[var(--color-fg-muted)] hover:text-fg-secondary"
                 >
                   <X size={14} />
                 </button>
@@ -500,9 +500,9 @@ function BookDownloadModalContent({
           )}
 
           {rankedBooks.length > 0 && rankedBooks[0].score >= 80 && (
-            <div className="rounded-lg border-2 border-[var(--accent)]/30 bg-[var(--accent)]/[0.04] p-3">
+            <div className="rounded-lg border-2 border-[var(--color-accent)]/30 bg-[var(--color-accent)]/[0.04] p-3">
               <div className="mb-2 flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                   {t("downloadBestMatch")}
                 </span>
                 {rankedBooks[0].sources.length > 1 && (
@@ -518,13 +518,13 @@ function BookDownloadModalContent({
                   <div className="flex items-center gap-2">
                     <BookOpen
                       size={16}
-                      className="shrink-0 text-[var(--accent)]"
+                      className="shrink-0 text-[var(--color-accent)]"
                     />
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">
+                    <span className="text-sm font-semibold text-[var(--color-fg-primary)]">
                       {rankedBooks[0].best.title}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-muted)]">
+                  <div className="mt-1 flex items-center gap-3 text-xs text-[var(--color-fg-muted)]">
                     <span className="flex items-center gap-1">
                       <User size={11} />
                       {rankedBooks[0].best.author || "—"}
@@ -556,14 +556,14 @@ function BookDownloadModalContent({
             return others.length > 0 ? (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[var(--text-secondary)]">
+                  <span className="text-sm font-medium text-[var(--color-fg-secondary)]">
                     {(rankedBooks[0]?.score ?? 0) >= 80
                       ? t("downloadOtherResults")
                       : t("downloadSearchResults")}
                   </span>
                   <Tag>{others.length}</Tag>
                 </div>
-                <div className="max-h-[350px] divide-y divide-[var(--border-base)] overflow-y-auto rounded-lg border border-border-base">
+                <div className="max-h-[350px] divide-y divide-[var(--color-border-base)] overflow-y-auto rounded-lg border border-border-base">
                   {others.map((book) => (
                     <div
                       key={`${book.best.site}-${book.best.bookId}`}
@@ -573,9 +573,9 @@ function BookDownloadModalContent({
                         <div className="flex flex-wrap items-center gap-2">
                           <BookOpen
                             size={14}
-                            className="shrink-0 text-[var(--accent)]"
+                            className="shrink-0 text-[var(--color-accent)]"
                           />
-                          <span className="truncate text-sm font-medium text-[var(--text-primary)]">
+                          <span className="truncate text-sm font-medium text-[var(--color-fg-primary)]">
                             {book.best.title}
                           </span>
                           <Tag className="!text-[10px]">{book.best.site}</Tag>
@@ -585,7 +585,7 @@ function BookDownloadModalContent({
                             </Tag>
                           )}
                         </div>
-                        <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-muted)]">
+                        <div className="mt-1 flex items-center gap-3 text-xs text-[var(--color-fg-muted)]">
                           <span className="flex items-center gap-1">
                             <User size={11} />
                             {book.best.author || "—"}

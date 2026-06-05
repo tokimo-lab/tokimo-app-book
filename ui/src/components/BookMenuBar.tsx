@@ -140,7 +140,7 @@ export default function BookMenuBar({ children }: { children: ReactNode }) {
         >
           {t("syncClearData")}
         </Checkbox>
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
+        <p className="mt-2 text-xs text-[var(--color-fg-muted)]">
           {t("syncClearDataHint")}
         </p>
       </Modal>

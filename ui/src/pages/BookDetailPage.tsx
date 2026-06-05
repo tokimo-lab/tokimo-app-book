@@ -225,7 +225,7 @@ export default function BookDetailPage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex aspect-[2/3] flex-col items-center justify-center bg-[var(--bg-skeleton)]">
+            <div className="flex aspect-[2/3] flex-col items-center justify-center bg-[var(--color-fill-skeleton)]">
               <BookOpen size={48} strokeWidth={1.5} className="text-fg-muted" />
             </div>
           )}
