@@ -100,7 +100,10 @@ pub struct ContainerOutput {
 
 fn container_to_output(c: containers::Model, item_count: i64, sync_status: Option<String>) -> ContainerOutput {
     let sources = if let Some(sid) = c.source_id {
-        vec![ContainerSource { source_id: sid, root_path: c.root_path.clone() }]
+        vec![ContainerSource {
+            source_id: sid,
+            root_path: c.root_path.clone(),
+        }]
     } else {
         vec![]
     };
@@ -148,7 +151,10 @@ fn item_to_output(item: &items::Model) -> BookItemOutput {
         cover_path: meta.get("coverPath").and_then(|v| v.as_str()).map(String::from),
         serial_status: meta.get("serialStatus").and_then(|v| v.as_str()).map(String::from),
         chapter_count: meta.get("chapterCount").and_then(serde_json::Value::as_i64),
-        word_count: meta.get("wordCount").and_then(serde_json::Value::as_i64).or(item.size_bytes),
+        word_count: meta
+            .get("wordCount")
+            .and_then(serde_json::Value::as_i64)
+            .or(item.size_bytes),
         scraped_at: meta.get("scrapedAt").and_then(|v| v.as_str()).map(String::from),
         format: item.format.clone(),
         file_path: item.file_path.clone(),
@@ -166,10 +172,8 @@ pub async fn list_books(
 ) -> Result<Json<ApiResponse<Vec<ContainerOutput>>>, AppError> {
     let rows = ContainersRepo::list_all(&ctx.db).await?;
     let sync_statuses = BookSyncStatusRepo::list_all(&ctx.db).await?;
-    let sync_map: std::collections::HashMap<Uuid, String> = sync_statuses
-        .into_iter()
-        .map(|s| (s.container_id, s.status))
-        .collect();
+    let sync_map: std::collections::HashMap<Uuid, String> =
+        sync_statuses.into_iter().map(|s| (s.container_id, s.status)).collect();
 
     let mut result = Vec::with_capacity(rows.len());
     for c in rows {
@@ -209,15 +213,8 @@ pub async fn create_container(
     State(ctx): State<Arc<AppCtx>>,
     Json(req): Json<CreateContainerRequest>,
 ) -> Result<Json<ApiResponse<ContainerOutput>>, AppError> {
-    let container = ContainersRepo::create(
-        &ctx.db,
-        Uuid::nil(),
-        req.name,
-        req.kind,
-        req.source_id,
-        req.root_path,
-    )
-    .await?;
+    let container =
+        ContainersRepo::create(&ctx.db, Uuid::nil(), req.name, req.kind, req.source_id, req.root_path).await?;
     Ok(ok(container_to_output(container, 0, None)))
 }
 
@@ -445,7 +442,10 @@ pub async fn get_book_detail(
 
     Ok(ok(BookDetailResponse {
         item: item_to_output(&item),
-        is_favorite: meta.get("isFavorite").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        is_favorite: meta
+            .get("isFavorite")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
         original_title: meta.get("originalTitle").and_then(|v| v.as_str()).map(String::from),
         overview: meta.get("overview").and_then(|v| v.as_str()).map(String::from),
         year: meta.get("year").and_then(serde_json::Value::as_i64).map(|v| v as i32),
@@ -453,9 +453,17 @@ pub async fn get_book_detail(
         source_provider: meta.get("sourceProvider").and_then(|v| v.as_str()).map(String::from),
         douban_rating: meta.get("doubanRating").and_then(serde_json::Value::as_f64),
         bangumi_rating: meta.get("bangumiRating").and_then(serde_json::Value::as_f64),
-        volumes: meta.get("volumes").cloned().map(|v| v.as_array().cloned().unwrap_or_default()).unwrap_or_default(),
+        volumes: meta
+            .get("volumes")
+            .cloned()
+            .map(|v| v.as_array().cloned().unwrap_or_default())
+            .unwrap_or_default(),
         orphan_chapters: chapter_infos,
-        files: meta.get("files").cloned().map(|v| v.as_array().cloned().unwrap_or_default()).unwrap_or_default(),
+        files: meta
+            .get("files")
+            .cloned()
+            .map(|v| v.as_array().cloned().unwrap_or_default())
+            .unwrap_or_default(),
         total_chapters: chapters.len(),
     }))
 }
@@ -1010,7 +1018,9 @@ async fn do_download_book(
                         if let Some(vfs) = &chapter_vfs {
                             let filename = format!("第{:03}章 {}.txt", index + 1, sanitize_filename(&chapter_title));
                             let chapter_path = join_vfs_path(&book_dir, &filename);
-                            if let Err(error) = vfs.put(StdPath::new(&chapter_path), alt_content.as_bytes().to_vec()).await
+                            if let Err(error) = vfs
+                                .put(StdPath::new(&chapter_path), alt_content.as_bytes().to_vec())
+                                .await
                             {
                                 warn!(%error, %chapter_path, "failed to write rescued chapter to VFS");
                             }
