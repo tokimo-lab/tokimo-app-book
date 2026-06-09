@@ -12,11 +12,11 @@ importers:
         specifier: ^5.100.5
         version: 5.100.14(react@19.2.7)
       '@tokimo/sdk':
-        specifier: github:tokimo-lab/tokimo-package-sdk#0abcc1ecb2af836a80911ff6cf16ae8295f041a4
-        version: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/0abcc1ecb2af836a80911ff6cf16ae8295f041a4(@tanstack/react-query@5.100.14(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: github:tokimo-lab/tokimo-package-sdk#b5db80a47b715e10f450a4157018ec7eb38d723e
+        version: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e(@tanstack/react-query@5.100.14(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tokimo/ui':
-        specifier: github:tokimo-lab/tokimo-ui#683e9322d6e96ded543c97805b25736750a09f11
-        version: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/683e9322d6e96ded543c97805b25736750a09f11(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
+        specifier: github:tokimo-lab/tokimo-ui#511e982d4fc87e487a04501b29c4f5083164bda6
+        version: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/511e982d4fc87e487a04501b29c4f5083164bda6(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
       lucide-react:
         specifier: ^1.11.0
         version: 1.17.0(react@19.2.7)
@@ -28,8 +28,8 @@ importers:
         version: 19.2.7(react@19.2.7)
     devDependencies:
       '@tokimo/app-builder':
-        specifier: github:tokimo-lab/tokimo-app-builder#5be9a3e036908730a0ae7d9e49c7b3f76d7d30cb
-        version: https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/5be9a3e036908730a0ae7d9e49c7b3f76d7d30cb(vite@8.0.14(jiti@2.7.0))
+        specifier: github:tokimo-lab/tokimo-app-builder#2085574f7c070c20a32bce6a254348e16dfee01d
+        version: https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/2085574f7c070c20a32bce6a254348e16dfee01d(vite@8.0.14(jiti@2.7.0))
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.15
@@ -325,14 +325,14 @@ packages:
   '@tanstack/virtual-core@3.16.0':
     resolution: {integrity: sha512-Er2N7q3WOiH6y2JLxsxNX+u2/sLqSsL0bxFgDjuiPiA7vKhZRm+IzcS17vRee3GNXr64UsesA5CAp9yTiIYw9A==}
 
-  '@tokimo/app-builder@https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/5be9a3e036908730a0ae7d9e49c7b3f76d7d30cb':
-    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/5be9a3e036908730a0ae7d9e49c7b3f76d7d30cb}
+  '@tokimo/app-builder@https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/2085574f7c070c20a32bce6a254348e16dfee01d':
+    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/2085574f7c070c20a32bce6a254348e16dfee01d}
     version: 0.1.0
     peerDependencies:
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
 
-  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/0abcc1ecb2af836a80911ff6cf16ae8295f041a4':
-    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/0abcc1ecb2af836a80911ff6cf16ae8295f041a4}
+  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e':
+    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e}
     version: 0.1.0
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
@@ -343,8 +343,8 @@ packages:
       '@tokimo/viewers':
         optional: true
 
-  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/683e9322d6e96ded543c97805b25736750a09f11':
-    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/683e9322d6e96ded543c97805b25736750a09f11}
+  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/511e982d4fc87e487a04501b29c4f5083164bda6':
+    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/511e982d4fc87e487a04501b29c4f5083164bda6}
     version: 0.1.0
     peerDependencies:
       react: ^19.0.0
@@ -1270,7 +1270,7 @@ snapshots:
 
   '@tanstack/virtual-core@3.16.0': {}
 
-  '@tokimo/app-builder@https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/5be9a3e036908730a0ae7d9e49c7b3f76d7d30cb(vite@8.0.14(jiti@2.7.0))':
+  '@tokimo/app-builder@https://codeload.github.com/tokimo-lab/tokimo-app-builder/tar.gz/2085574f7c070c20a32bce6a254348e16dfee01d(vite@8.0.14(jiti@2.7.0))':
     dependencies:
       '@tailwindcss/vite': 4.3.0(vite@8.0.14(jiti@2.7.0))
       '@vitejs/plugin-react': 6.0.2(vite@8.0.14(jiti@2.7.0))
@@ -1279,13 +1279,13 @@ snapshots:
       - '@rolldown/plugin-babel'
       - babel-plugin-react-compiler
 
-  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/0abcc1ecb2af836a80911ff6cf16ae8295f041a4(@tanstack/react-query@5.100.14(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e(@tanstack/react-query@5.100.14(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/react-query': 5.100.14(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/683e9322d6e96ded543c97805b25736750a09f11(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
+  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/511e982d4fc87e487a04501b29c4f5083164bda6(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
     dependencies:
       '@emoji-mart/data': 1.2.1
       '@emoji-mart/react': 1.1.1(emoji-mart@5.6.0)(react@19.2.7)
