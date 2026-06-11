@@ -24,8 +24,8 @@ use tracing::{error, info};
 #[derive(Parser, Debug)]
 #[command(
     name = "tokimo-app-book",
-    about = "Book — Tokimo 图书 CLI",
-    long_about = "Tokimo Book CLI — 管理图书库。",
+    about = "Book — Tokimo Book CLI",
+    long_about = "Tokimo Book CLI — manage book library.",
     term_width = 100
 )]
 struct Cli {
@@ -37,7 +37,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// 运行诊断（服务状态检查）
+    /// Run diagnostics (service health check)
     Status,
 }
 
