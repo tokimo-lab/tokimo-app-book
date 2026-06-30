@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+pnpmfileChecksum: sha256-fGHZEoqdo1Ww7OX20aQjOOdnhb83nxrI993cfGdOKU0=
+
 importers:
 
   .:
@@ -12,11 +14,11 @@ importers:
         specifier: ^5.101.0
         version: 5.101.0(react@19.2.7)
       '@tokimo/sdk':
-        specifier: github:tokimo-lab/tokimo-package-sdk#b5db80a47b715e10f450a4157018ec7eb38d723e
-        version: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e(@tanstack/react-query@5.101.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: github:tokimo-lab/tokimo-package-sdk#84fc98c8c0af8688d12568e3ec8d14e5b3e5c865
+        version: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/84fc98c8c0af8688d12568e3ec8d14e5b3e5c865(@tanstack/react-query@5.101.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tokimo/ui':
-        specifier: github:tokimo-lab/tokimo-ui#b3a7fa8af87ad6e5d71954c4adf9683b131c72f7
-        version: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/b3a7fa8af87ad6e5d71954c4adf9683b131c72f7(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
+        specifier: github:tokimo-lab/tokimo-ui#0d09afd6d88365fa40dfe729fedf9fb30331eb5e
+        version: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/0d09afd6d88365fa40dfe729fedf9fb30331eb5e(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)
       lucide-react:
         specifier: ^1.7.0
         version: 1.17.0(react@19.2.7)
@@ -331,8 +333,8 @@ packages:
     peerDependencies:
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
 
-  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e':
-    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e}
+  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/84fc98c8c0af8688d12568e3ec8d14e5b3e5c865':
+    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/84fc98c8c0af8688d12568e3ec8d14e5b3e5c865}
     version: 0.1.0
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
@@ -343,8 +345,8 @@ packages:
       '@tokimo/viewers':
         optional: true
 
-  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/b3a7fa8af87ad6e5d71954c4adf9683b131c72f7':
-    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/b3a7fa8af87ad6e5d71954c4adf9683b131c72f7}
+  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/0d09afd6d88365fa40dfe729fedf9fb30331eb5e':
+    resolution: {tarball: https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/0d09afd6d88365fa40dfe729fedf9fb30331eb5e}
     version: 0.1.0
     peerDependencies:
       react: ^19.0.0
@@ -1279,13 +1281,13 @@ snapshots:
       - '@rolldown/plugin-babel'
       - babel-plugin-react-compiler
 
-  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/b5db80a47b715e10f450a4157018ec7eb38d723e(@tanstack/react-query@5.101.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@tokimo/sdk@https://codeload.github.com/tokimo-lab/tokimo-package-sdk/tar.gz/84fc98c8c0af8688d12568e3ec8d14e5b3e5c865(@tanstack/react-query@5.101.0(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@tanstack/react-query': 5.101.0(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/b3a7fa8af87ad6e5d71954c4adf9683b131c72f7(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
+  '@tokimo/ui@https://codeload.github.com/tokimo-lab/tokimo-ui/tar.gz/0d09afd6d88365fa40dfe729fedf9fb30331eb5e(emoji-mart@5.6.0)(i18next@26.3.0(typescript@6.0.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.0)(typescript@6.0.3)':
     dependencies:
       '@emoji-mart/data': 1.2.1
       '@emoji-mart/react': 1.1.1(emoji-mart@5.6.0)(react@19.2.7)

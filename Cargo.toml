@@ -39,11 +39,8 @@ lopdf            = "0.38"
 sha2             = "0.10"
 reqwest          = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 
-[lints]
-workspace = true
 
 [profile.release]
 lto       = "thin"
 opt-level = 3
 strip     = "symbols"
-
