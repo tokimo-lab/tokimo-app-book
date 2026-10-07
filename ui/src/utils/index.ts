@@ -45,7 +45,8 @@ export interface BookRouteParams {
 
 /** Parse the current window route into named params. */
 export function parseBookRoute(route: string): BookRouteParams {
-  const clean = route.startsWith("/") ? route : `/${route}`;
+  const path = route.split(/[?#]/, 1)[0];
+  const clean = path.startsWith("/") ? path : `/${path}`;
   const libraryMatch = /^\/library\/([^/]+)/.exec(clean);
   if (libraryMatch) return { libraryId: libraryMatch[1] };
   const bookMatch = /^\/books\/([^/]+)/.exec(clean);

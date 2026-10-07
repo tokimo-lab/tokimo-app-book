@@ -23,6 +23,14 @@ export default defineApp({
     defaultSize: { width: 1200, height: 820 },
     category: "page",
   },
+  standalone: {
+    createWindow: (route) => ({ type: "tokimo-book", route }),
+    getRoute: (window) => {
+      if (window.type !== "tokimo-book") return null;
+      if (window.route && window.route !== "/") return window.route;
+      return window.appId ? `/library/${window.appId}` : "/";
+    },
+  },
   mount(container, ctx): Dispose {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: 1 } },
