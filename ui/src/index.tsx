@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Dispose } from "@tokimo/sdk";
 import { defineApp, RuntimeProvider } from "@tokimo/sdk";
-import { ConfigProvider, ToastProvider } from "@tokimo/ui";
+import { ConfigProvider, cssVar, TOKEN, ToastProvider } from "@tokimo/ui";
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { AppCtxProvider } from "./AppContext";
@@ -24,6 +24,8 @@ export default defineApp({
     category: "page",
   },
   standalone: {
+    layout: "document",
+    background: cssVar(TOKEN.surfaceBase),
     createWindow: (route) => ({ type: "tokimo-book", route }),
     getRoute: (window) => {
       if (window.type !== "tokimo-book") return null;

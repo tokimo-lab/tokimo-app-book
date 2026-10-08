@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useRuntimeCtx,
+  useStandaloneDocumentScroll,
   useWindowActions,
   useWindowId,
   useWindowNav,
@@ -22,6 +23,7 @@ import {
 import BookSidebar from "./BookSidebar";
 
 export default function BookApp() {
+  const documentScroll = useStandaloneDocumentScroll();
   const { route, replace } = useWindowNav();
   const _windowId = useWindowId();
   const { openModalWindow } = useWindowActions();
@@ -123,7 +125,10 @@ export default function BookApp() {
   }
 
   return (
-    <div ref={containerRef} className="relative flex h-full">
+    <div
+      ref={containerRef}
+      className={`relative flex ${documentScroll ? "min-h-dvh flex-col" : "h-full"}`}
+    >
       <BookSidebar
         libraries={libraries}
         activeId={activeLibraryId ?? null}
@@ -137,7 +142,7 @@ export default function BookApp() {
         onToggleCollapse={onToggleCollapse}
       />
       <div
-        className={`app-safe-area relative min-w-0 flex-1 overflow-auto bg-[var(--color-surface-content)]${isDetailPage ? " [--app-safe-area-padding:0.75rem] lg:[--app-safe-area-padding:1rem]" : ""}`}
+        className={`app-safe-area relative min-w-0 flex-1 ${documentScroll ? "overflow-visible bg-surface-base" : "overflow-auto bg-[var(--color-surface-content)]"}${isDetailPage ? " [--app-safe-area-padding:0.75rem] lg:[--app-safe-area-padding:1rem]" : ""}`}
       >
         {isDetailPage ? (
           <BookDetailPage />
