@@ -186,7 +186,7 @@ export default function BookDetailPage() {
 
   if (detailQuery.isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex min-h-full items-center justify-center">
         <Spin />
       </div>
     );
@@ -208,7 +208,7 @@ export default function BookDetailPage() {
   const coverUrl = posterThumbUrl(bookDetail.coverPath, 300);
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6">
+    <div className="min-h-full px-4 py-6 md:px-6">
       <div className="mb-6">
         <Button icon={<ArrowLeft size={16} />} onClick={() => goBack()}>
           {t("commonBack")}
